@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<aiml version="xaiml1.1.0" xmlns="http://www.nttdocomo.com/aiml/schema" xmlns:html="http://www.w3.org/1999/xhtml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.nttdocomo.com/aiml/schema/AIML.xsd">
+
+ <!-- Primera pregunta -->
+  <category>
+    <pattern>en qué estación estamos</pattern>
+    <template>
+      <random>
+        <li>Estamos en </li>
+        <li>Al ser <date format="%B" jformat="MMMMMMMMM"/>, estamos en </li>
+      </random><srai>season</srai>
+    </template>
+  </category>
+
+  <category>
+    <pattern>^ (qué) [la que] ^ [estación época] ^ [estamos es] ^</pattern>
+    <template><srai>en qué estación estamos</srai>
+    </template>
+  </category>
+
+  <!-- Segunda pregunta -->
+  <category>
+    <pattern>en qué fase del día estamos</pattern>
+    <template>
+      <random>
+        <li>Estamos en la </li>
+        <li>Al ser las <date format="%I" jformat="h"/> <date format="%p" jformat="a"/>, estamos en la </li>
+      </random><srai>DAY PHASE</srai>
+    </template>
+  </category>
+
+  <category>
+    <pattern>^ [que la] ^ fase ^ [es+]</pattern>
+    <template><srai>en qué fase del día estamos</srai>
+    </template>
+  </category>
+
+  <!-- Tercera pregunta -->
+  <category>
+    <pattern>qué día de la semana [es será] <set>days_es</set></pattern>
+    <template>
+      <set var="dia"><star/></set><condition var="dia">
+        <li><value>hoy</value> es <srai>DAY</srai></li>
+        <li><value>manyana</value> será <srai>TOMORROW</srai></li>
+        <li><value>pasado manyana</value> será <srai>DAY AFTER TOMORROW</srai></li>
+      </condition>
+    </template>
+  </category>
+
+  <!-- mirar si usar un set: hoy manyana pasado manyana para usar en el pattern-->
+  <category>
+    <pattern><set>days_es</set> qué día ^ semana [es será esta+]</pattern>
+    <template>
+      <srai>qué día de la semana es <star/></srai>
+    </template>
+  </category>
+
+  <!-- Cuarta pregunta -->
+  <category>
+    <pattern>qué fecha será [en dentro] (de) una semana</pattern>
+    <template>
+      <srai>date in 7 days<star/></srai>
+    </template>
+  </category>
+
+  <category>
+    <pattern>^ [en dentro] (de) una semana qué fecha será</pattern>
+    <template>
+      <srai>qué fecha será en una semana</srai>
+    </template>
+  </category>
+
+
+  <!-- Quinta pregunta usar set tanto en esta como con estos dias como en manyana hoy etc, para evitar solapamiento-->
+  <category>
+    <pattern>qué fecha será el próximo <set>weekday_es</set></pattern>
+    <template>
+      El próximo <star/> será <srai>date on <star/></srai>
+    </template>
+  </category>
+
+  <category>
+    <pattern>^ [próximo siguiente] <set>weekday_es</set> qué fecha será</pattern>
+    <template><srai>qué fecha será el próximo <star index="2"/></srai></template>
+  </category>
+
+
+</aiml>

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<aiml version="xaiml1.1.0" xmlns="http://www.nttdocomo.com/aiml/schema" xmlns:html="http://www.w3.org/1999/xhtml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.nttdocomo.com/aiml/schema/AIML.xsd">
+
+  <category>
+    <pattern>nivel1</pattern>
+    <template>actualmente en el <set name="topic">nivel1</set>
+    </template>
+  </category>
+
+  <topic name="nivel1">
+
+    <!-- Se obtiene mediante el map la lista correspondiente a una fecha concreta,
+        a continuación se comprueba si hay algun LIBRE en la sublista desde las 8:00 hasta las 20:00(lo que supone que un dia este libre o no)-->
+    <category>
+      <pattern>esta libre el * de * del *</pattern>
+      <template>
+        <think>
+          <set var="date"><star index="1"/>_<map name="meses"><star index="2"/></map>_<star index="3"/></set>
+          <set var="subschedule"><srai>SUBLIST FROM <srai>ORDINAL 08:00</srai> TO <srai>ORDINAL 19:00</srai> OF <map name="eventos"><get var="date"/></map></srai></set>
+          <set var="algun_libre"><srai>FINDITEM LIBRE IN <get var="subschedule"/></srai></set>
+        </think>
+        <condition var="algun_libre">
+          <li value="0">No esta libre</li>
+          <li>Si esta libre</li>
+        </condition>
+      </template>
+    </category>
+
+    <!--
+         Se tienen dos listas, todas las franjas horarias y su disponibilidad.
+         Estas dos listas se recorren hasta encontrar $(fin) y si para esa franja su disponibilidad es LIBRE se añade a la lista de salida
+         Suponemos que los tramos horarios que componen la mañana, tarde y el dia completo son los siguientes:
+              Mañana: 08:00 a 12:00
+              Tarde:  13:00 a 20:00
+              Día completo: 08:00 a 20:00
+    -->
+    <category>
+      <pattern>horas libres <set>partes_dia</set> * de * del *</pattern>
+      <template>
+        <think>
+          <set var="momento_dia"><star index="1"/></set>
+          <set var="date"><star index="2"/>_<map name="meses"><star index="3"/></map>_<star index="4"/></set>
+          <condition var="momento_dia">
+            <li value="manyana">
+              <set var="subschedule"><srai>SUBLIST FROM <srai>ORDINAL 08:00</srai> TO <srai>ORDINAL 12:00</srai> OF <map name="eventos"><get var="date"/></map></srai></set>
+              <set var="franjas">08:00 09:00 10:00 11:00 12:00</set>
+            </li>
+            <li value="tarde">
+              <set var="subschedule"><srai>SUBLIST FROM <srai>ORDINAL 13:00</srai> TO <srai>ORDINAL 19:00</srai> OF <map name="eventos"><get var="date"/></map></srai></set>
+              <set var="franjas">13:00 14:00 15:00 16:00 17:00 18:00 19:00</set>
+            </li>
+            <li value="dia">
+              <set var="subschedule"><srai>SUBLIST FROM <srai>ORDINAL 08:00</srai> TO <srai>ORDINAL 19:00</srai> OF <map name="eventos"><get var="date"/></map></srai></set>
+              <set var="franjas">08:00 09:00 10:00 11:00 12:00 13:00 14:00 15:00 16:00 17:00 18:00 19:00</set>
+            </li>
+          </condition>
+          <set var="output_schedule"></set>
+          <set var="hora_disponibilidad"><srai>iterate <get var="subschedule"/></srai></set>
+          <set var="hora"><srai>iterate <get var="franjas"/></srai></set>
+          <condition var="hora_disponibilidad">
+            <li value="LIBRE">
+              <set var="output_schedule"><get var="output_schedule"/> <get var="hora"/></set>
+              <set var="subschedule"><srai>remove 1 first elements from <get var="subschedule"/></srai></set>
+              <set var="franjas"><srai>remove 1 first elements from <get var="franjas"/></srai></set>
+              <set var="hora_disponibilidad"><srai>iterate <get var="subschedule"/></srai></set>
+              <set var="hora"><srai>iterate <get var="franjas"/></srai></set>
+              <loop/>
+            </li>
+            <li value="NOLIBRE">
+              <set var="subschedule"><srai>remove 1 first elements from <get var="subschedule"/></srai></set>
+              <set var="franjas"><srai>remove 1 first elements from <get var="franjas"/></srai></set>
+              <set var="hora_disponibilidad"><srai>iterate <get var="subschedule"/></srai></set>
+              <set var="hora"><srai>iterate <get var="franjas"/></srai></set>
+              <loop/>
+            </li>
+            <li></li>
+        </condition>
+      </think>
+        <get var="momento_dia"/>
+        <get var="output_schedule"/>
+      </template>
+    </category>
+
+
+  </topic>
+</aiml>

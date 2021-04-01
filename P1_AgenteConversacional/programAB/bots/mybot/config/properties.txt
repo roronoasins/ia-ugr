@@ -1,0 +1,6 @@
+name:bd1
+email:nobody@nowhere.com
+gender:male
+botmaster:gonzo
+organization:ugr
+version:0.0.4
