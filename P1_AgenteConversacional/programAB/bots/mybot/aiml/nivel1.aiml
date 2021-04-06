@@ -108,12 +108,17 @@
       </template>
     </category>
 
+    <!-- Regla para reservar el primer hueco libre cuando no le importa la hora al usuario -->
     <category>
       <pattern>^ [igual importa] ^</pattern>
       <that>Desea alguno en concreto</that>
       <template>
+        <think>
+          <set var="primer_hueco"><srai>top <get name="huecos"/></srai></set>
+          <srai>mark NOLIBRE at <get var="primer_hueco"/> on <get name="dia_cita"/></srai>
+        </think>
         Vale, le reservo el primer hueco libre.
-        ¿Desea concretar alguna otra cita?
+        Desea concretar alguna otra cita
       </template>
     </category>
 
