@@ -26,6 +26,121 @@
       </template>
     </category>
 
+    <!-- Regla que comprueba la disponibilidad de un dia con formato DD_MM_YY -->
+    <category>
+      <pattern>esta libre el *</pattern>
+      <template>
+        <think>
+          <set var="subschedule"><srai>SUBLIST FROM <srai>ORDINAL 08:00</srai> TO <srai>ORDINAL 19:00</srai> OF <map name="eventos"><star/></map></srai></set>
+          <set var="algun_libre"><srai>FINDITEM LIBRE IN <get var="subschedule"/></srai></set>
+        </think>
+        <condition var="algun_libre">
+          <li value="0">No esta libre</li>
+          <li>Si esta libre</li>
+          hacer que conteste si tiene hueco pr la manyana, tarde o ambos junto a las horas libres
+        </condition>
+      </template>
+    </category>
+
+    <!-- Regla para pedir cita un dia concreto -->
+    <category>
+      <pattern>^ [gustaria dese+ qui+] ^ (una) cita ^ [al el] * de * del *</pattern>
+      <template>
+        Dejeme comprobar como tengo ese dia.
+        <think>
+          <set var="date"><star index="4"/>_<map name="meses"><star index="5"/></map>_<star index="6"/></set>
+          <set var="respuesta"><srai>esta libre el <get var="date"/></srai></set>
+        </think>
+        <condition var="respuesta">
+          <li value="Si esta libre">
+            <think><set name="dia_cita"><get var="date"/></set><set name="dia_cita2"><star index="4"/> de <star index="5"/> del <star index="6"/></set></think>
+            <srai>horas libres dia <star index="4"/> de <star index="5"/> del <star index="6"/></srai>.
+          </li>
+          <li value="No esta libre">Lo siento, no nos queda ningun hueco para ese día.</li>
+        </condition>
+        <condition var="respuesta">
+          <li value="Si esta libre">Desea alguno en concreto</li>
+          <li value="No esta libre">Desea que la cita sea otro dia</li>
+        </condition>
+      </template>
+    </category>
+
+    <category>
+      <pattern>informar sobre huecos libres</pattern>
+      <template>
+        <srai>horas libres dia <get name="dia_cita2"/></srai>
+        Especifique una hora dentro de las libres por favor.
+        Desea alguno en concreto
+      </template>
+    </category>
+
+    <category>
+      <pattern>^ no ^</pattern>
+      <that>Especifique una hora dentro de las libres</that>
+      <template>
+        Vale, gracias por su paciencia. Que tenga un buen dia.
+      </template>
+    </category>
+
+    <!-- Reglas para manejar el comportamiento dependiendo de las respuestas dadas en la regla anterior -->
+    <category>
+      <pattern>^ no ^</pattern>
+      <that>Desea que la cita sea otro dia</that>
+      <template>
+        Vale, gracias por su paciencia. Que tenga un buen dia.
+      </template>
+    </category>
+
+    <category>
+      <pattern>^ <set>horas</set> ^</pattern>
+      <that>Desea alguno en concreto</that>
+      <template>
+        <think>
+          <set var="es_correcta"><srai>pertenece a hueco libre <star index="2"/></srai></set>
+        </think>
+        <condition var="es_correcta">
+          <li value="si">
+            <srai>mark NOLIBRE at <star index="2"/> on <get name="dia_cita"/></srai>
+            Vale, le reservo el hueco de las <star index="2"/>.
+            Desea concretar alguna otra cita</li>
+          <li value="no"><srai>informar sobre huecos libres</srai></li>
+        </condition>
+      </template>
+    </category>
+
+    <category>
+      <pattern>^ [igual importa] ^</pattern>
+      <that>Desea alguno en concreto</that>
+      <template>
+        Vale, le reservo el primer hueco libre.
+        ¿Desea concretar alguna otra cita?
+      </template>
+    </category>
+
+    <category>
+      <pattern>^ [si vale acuerdo] ^</pattern>
+      <that>Desea concretar alguna otra cita</that>
+      <template>
+        Para que dia desea un hueco
+      </template>
+    </category>
+
+    <category>
+      <pattern>^ no ^</pattern>
+      <that>Desea concretar alguna otra cita</that>
+      <template>
+        Vale, gracias por su paciencia. Que tenga un buen dia.
+      </template>
+    </category>
+
+    <category>
+      <pattern>^ [al el] * de * del *</pattern>
+      <that>Para que dia desea un hueco</that>
+      <template>
+        <srai>quiero una cita para el <star index="2"/> de <star index="3"/> del <star index="4"/></srai>
+      </template>
+    </category>
+
     <!--
          Se tienen dos listas, todas las franjas horarias y su disponibilidad.
          Estas dos listas se recorren hasta encontrar $(fin) y si para esa franja su disponibilidad es LIBRE se añade a la lista de salida
@@ -74,13 +189,57 @@
               <loop/>
             </li>
             <li></li>
-        </condition>
-      </think>
-        <get var="momento_dia"/>
-        <get var="output_schedule"/>
+          </condition>
+          <set var="n_horas"><srai>count <get var="output_schedule"/></srai></set>
+          <set var="output"></set>
+          <condition var="momento_dia">
+            <li value="manyana"><set var="output">por la manyana</set></li>
+            <li value="tarde"><set var="output">por la tarde</set></li>
+          </condition>
+          <condition var="n_horas">
+            <li value="0"><set var="output"><get var="output"/> no nos quedan huecos</set></li>
+            <li><set var="output"><get var="output"/> nos quedan los siguientes huecos libres <get var="output_schedule"/></set></li>
+          </condition>
+        <!-- guardamos los huecos libres -->
+        <set name="huecos"><get name="huecos"/> <get var="output_schedule"/></set>
+        </think>
+        <get var="output"/>
       </template>
     </category>
 
+    <!-- regla para obtener las franjas horarias libres de un dia completo usando la regla anterior -->
+    <category>
+      <pattern>horas libres dia * de * del *</pattern>
+      <template>
+        <!-- reseteamos los huecos antes de volver a asignarlos -->
+        <think><set name="huecos"></set></think>
+        <srai>horas libres manyana <star index="1"/> de <star index="2"/> del <star index="3"/></srai> y <srai>horas libres tarde <star index="1"/> de <star index="2"/> del <star index="3"/></srai>
+      </template>
+    </category>
+
+      <!-- Comprueba si una hora dada en el formato HH:MM pertenece a los huecos obtenidos en la regla de reservar cita -->
+    <category>
+      <pattern>pertenece a hueco libre <set>horas</set></pattern>
+      <template>
+        <think>
+          <set var="tmp_huecos"><get name="huecos"/></set>
+          <set var="hora"><srai>iterate <get var="tmp_huecos"/></srai></set>
+          <set var="hora_arg"><star/></set>
+          <condition var="hora">
+            <li><value><get var="hora_arg"/></value>
+              <set var="respuesta">si</set>
+            </li>
+            <li value="$"><set var="respuesta">no</set></li>
+            <li>
+              <set var="tmp_huecos"><srai>remove 1 first elements from <get var="tmp_huecos"/></srai></set>
+              <set var="hora"><srai>iterate <get var="tmp_huecos"/></srai></set>
+              <loop/>
+            </li>
+          </condition>
+        </think>
+        <get var="respuesta"/>
+      </template>
+    </category>
 
   </topic>
 </aiml>
