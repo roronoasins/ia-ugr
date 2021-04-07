@@ -88,6 +88,22 @@
       </template>
     </category>
 
+    <category>
+      <pattern>^ [no otro] ^</pattern>
+      <that>Desea alguno en concreto</that>
+      <template>
+        Vale, pues digame para cuando quiere la cita
+      </template>
+    </category>
+
+    <category>
+      <pattern>^  * de * del <set>number</set> ^</pattern>
+      <that>Vale, pues digame para cuando quiere la cita</that>
+      <template>
+        <srai>quiero una cita para el <star index="2"/> de <star index="3"/> del <star index="4"/></srai>
+      </template>
+    </category>
+
     <!-- Reglas para manejar el comportamiento dependiendo de las respuestas dadas en la regla anterior -->
     <category>
       <pattern>^ no ^</pattern>

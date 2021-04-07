@@ -13,7 +13,11 @@
   <HORA>::= HH:00
 -->
 
-<!-- Informar del estado de un día especificado con <ESPECIFICA DIA> -->
+<!--
+  Informar del estado de un día especificado con <ESPECIFICA DIA>
+  Ejemplo: consultando si tiene mínimo un hueco libre de pasado manyana (por la tarde)
+   Comando: tienes libre pasado manyana (por la tarde)
+-->
 
   <category>
     <pattern>^ libre ^ <set>opciones_consulta</set> (por la <set>partes_dia</set>)</pattern>
@@ -45,6 +49,10 @@
 <!-- Informar de las franjas libres por la mañana en un día especificado con <ESPECIFICA DIA> -->
 <!-- Informar de las franjas libres por la tarde en un día especificado con <ESPECIFICA DIA> -->
 
+  <!--
+    Ejemplo: obteniendo las horas libres por la tarde del siguiente martes
+     Comando: horas libres tarde del siguiente martes
+  -->
   <category>
     <pattern>^ horas libres <set>partes_dia</set> [el del] [siguiente proximo] <set>weekday_es</set></pattern>
     <template>
@@ -60,6 +68,10 @@
     </template>
   </category>
 
+  <!--
+    Ejemplo: obteniendo los huecos libres en todo el dia de mañana
+     Comando: horas libres dia de pasado manyana
+  -->
   <category>
     <pattern>^ horas libres <set>partes_dia</set> de <set>opciones_consulta</set></pattern>
     <template>
@@ -83,176 +95,256 @@
 
 <!-- Informar de las franjas libres a partir de una hora dada en un día especificado con <ESPECIFICA DIA> -->
 
-<category>
-  <pattern>horas libres <set>partes_dia</set> * de * del * a partir de las <set>horas</set></pattern>
-  <template>
-    <think>
-      <set var="hora_inicio"><star index="5"/></set>
-      <set var="n_dia_mes"><srai>day2twodigits <star index="2"/></srai></set>
-      <set var="momento_dia"><star index="1"/></set>
-      <set var="date"><get var="n_dia_mes"/>_<map name="meses"><star index="3"/></map>_<star index="4"/></set>
-      <condition var="momento_dia">
-        <li value="manyana">
-          <set var="subschedule"><srai>SUBLIST FROM <srai>ORDINAL <get var="hora_inicio"/></srai> TO <srai>ORDINAL 12:00</srai> OF <map name="eventos"><get var="date"/></map></srai></set>
-          <set var="franjas">08:00 09:00 10:00 11:00 12:00</set>
-        </li>
-        <li value="tarde">
-          <set var="subschedule"><srai>SUBLIST FROM <srai>ORDINAL <get var="hora_inicio"/></srai> TO <srai>ORDINAL 19:00</srai> OF <map name="eventos"><get var="date"/></map></srai></set>
-          <set var="franjas">13:00 14:00 15:00 16:00 17:00 18:00 19:00</set>
-        </li>
-        <li value="dia">
-          <set var="subschedule"><srai>SUBLIST FROM <srai>ORDINAL <get var="hora_inicio"/></srai> TO <srai>ORDINAL 19:00</srai> OF <map name="eventos"><get var="date"/></map></srai></set>
-          <set var="franjas">08:00 09:00 10:00 11:00 12:00 13:00 14:00 15:00 16:00 17:00 18:00 19:00</set>
-        </li>
-      </condition>
-      <set var="output_schedule"></set>
-      <set var="hora_disponibilidad"><srai>iterate <get var="subschedule"/></srai></set>
-      <set var="hora"><srai>iterate <get var="franjas"/></srai></set>
-      <condition var="hora">
-        <li><value><get var="hora_inicio"/></value></li>
-        <li>
-          <set var="franjas"><srai>remove 1 first elements from <get var="franjas"/></srai></set>
-          <set var="hora"><srai>iterate <get var="franjas"/></srai></set>
-          <loop/>
-        </li>
-      </condition>
-      <condition var="hora_disponibilidad">
-        <li value="LIBRE">
-          <set var="output_schedule"><get var="output_schedule"/> <get var="hora"/></set>
-          <set var="subschedule"><srai>remove 1 first elements from <get var="subschedule"/></srai></set>
-          <set var="franjas"><srai>remove 1 first elements from <get var="franjas"/></srai></set>
-          <set var="hora_disponibilidad"><srai>iterate <get var="subschedule"/></srai></set>
-          <set var="hora"><srai>iterate <get var="franjas"/></srai></set>
-          <loop/>
-        </li>
-        <li value="NOLIBRE">
-          <set var="subschedule"><srai>remove 1 first elements from <get var="subschedule"/></srai></set>
-          <set var="franjas"><srai>remove 1 first elements from <get var="franjas"/></srai></set>
-          <set var="hora_disponibilidad"><srai>iterate <get var="subschedule"/></srai></set>
-          <set var="hora"><srai>iterate <get var="franjas"/></srai></set>
-          <loop/>
-        </li>
-        <li></li>
-      </condition>
-      <set var="n_horas"><srai>count <get var="output_schedule"/></srai></set>
-      <set var="output"></set>
-      <condition var="momento_dia">
-        <li value="manyana"><set var="output">por la manyana</set></li>
-        <li value="tarde"><set var="output">por la tarde</set></li>
-      </condition>
-      <condition var="n_horas">
-        <li value="0"><set var="output"><get var="output"/> no nos quedan huecos</set></li>
-        <li><set var="output"><get var="output"/> nos quedan los siguientes huecos libres <get var="output_schedule"/></set></li>
-      </condition>
-    <!-- guardamos los huecos libres -->
-    <set name="huecos"><get name="huecos"/> <get var="output_schedule"/></set>
-    </think>
-    <get var="output"/>
-  </template>
-</category>
-
-<category>
-  <pattern>horas libres dia * de * del * a partir de las <set>horas</set></pattern>
-  <template>
-    <think>
-      <set var="hora_inicio"><star index="4"/></set>
-      <set var="n_dia_mes"><srai>day2twodigits <star index="1"/></srai></set>
-      <set var="momento_dia"><star index="1"/></set>
-      <set var="date"><get var="n_dia_mes"/>_<map name="meses"><star index="2"/></map>_<star index="3"/></set>
-      <set var="franjas">08:00 09:00 10:00 11:00 12:00 13:00 14:00 15:00 16:00 17:00 18:00 19:00</set>
-      <set var="subschedule"><srai>SUBLIST FROM <srai>ORDINAL <get var="hora_inicio"/></srai> TO <srai>ORDINAL 19:00</srai> OF <map name="eventos"><get var="date"/></map></srai></set>
-      <set var="output_schedule"></set>
-      <set var="hora_disponibilidad"><srai>iterate <get var="subschedule"/></srai></set>
-      <set var="hora"><srai>iterate <get var="franjas"/></srai></set>
-      <condition var="hora">
-        <li><value><get var="hora_inicio"/></value></li>
-        <li>
-          <set var="franjas"><srai>remove 1 first elements from <get var="franjas"/></srai></set>
-          <set var="hora"><srai>iterate <get var="franjas"/></srai></set>
-          <loop/>
-        </li>
-      </condition>
-      <condition var="hora_disponibilidad">
-        <li value="LIBRE">
-          <set var="output_schedule"><get var="output_schedule"/> <get var="hora"/></set>
-          <set var="subschedule"><srai>remove 1 first elements from <get var="subschedule"/></srai></set>
-          <set var="franjas"><srai>remove 1 first elements from <get var="franjas"/></srai></set>
-          <set var="hora_disponibilidad"><srai>iterate <get var="subschedule"/></srai></set>
-          <set var="hora"><srai>iterate <get var="franjas"/></srai></set>
-          <loop/>
-        </li>
-        <li value="NOLIBRE">
-          <set var="subschedule"><srai>remove 1 first elements from <get var="subschedule"/></srai></set>
-          <set var="franjas"><srai>remove 1 first elements from <get var="franjas"/></srai></set>
-          <set var="hora_disponibilidad"><srai>iterate <get var="subschedule"/></srai></set>
-          <set var="hora"><srai>iterate <get var="franjas"/></srai></set>
-          <loop/>
-        </li>
-        <li></li>
-      </condition>
-      <set var="n_horas"><srai>count <get var="output_schedule"/></srai></set>
-      <set var="output"></set>
-      <condition var="momento_dia">
-        <li value="manyana"><set var="output">por la manyana</set></li>
-        <li value="tarde"><set var="output">por la tarde</set></li>
-      </condition>
-      <condition var="n_horas">
-        <li value="0"><set var="output"><get var="output"/> no nos quedan huecos</set></li>
-        <li><set var="output"><get var="output"/> nos quedan los siguientes huecos libres <get var="output_schedule"/></set></li>
-      </condition>
+  <!--
+    Ejemplo: obteniendo los huecos libres por la mañana del 13 de abril del 2021 a partir de las 10a.m
+     Comando: horas libres manyana 13 de abril del 21 a partir de las 10:00
+  -->
+  <category>
+    <pattern>horas libres <set>partes_dia</set> * de * del * a partir de las <set>horas</set></pattern>
+    <template>
+      <think>
+        <set var="hora_inicio"><star index="5"/></set>
+        <set var="n_dia_mes"><srai>day2twodigits <star index="2"/></srai></set>
+        <set var="momento_dia"><star index="1"/></set>
+        <set var="date"><get var="n_dia_mes"/>_<map name="meses"><star index="3"/></map>_<star index="4"/></set>
+        <condition var="momento_dia">
+          <li value="manyana">
+            <set var="subschedule"><srai>SUBLIST FROM <srai>ORDINAL <get var="hora_inicio"/></srai> TO <srai>ORDINAL 12:00</srai> OF <map name="eventos"><get var="date"/></map></srai></set>
+            <set var="franjas">08:00 09:00 10:00 11:00 12:00</set>
+          </li>
+          <li value="tarde">
+            <set var="subschedule"><srai>SUBLIST FROM <srai>ORDINAL <get var="hora_inicio"/></srai> TO <srai>ORDINAL 19:00</srai> OF <map name="eventos"><get var="date"/></map></srai></set>
+            <set var="franjas">13:00 14:00 15:00 16:00 17:00 18:00 19:00</set>
+          </li>
+          <li value="dia">
+            <set var="subschedule"><srai>SUBLIST FROM <srai>ORDINAL <get var="hora_inicio"/></srai> TO <srai>ORDINAL 19:00</srai> OF <map name="eventos"><get var="date"/></map></srai></set>
+            <set var="franjas">08:00 09:00 10:00 11:00 12:00 13:00 14:00 15:00 16:00 17:00 18:00 19:00</set>
+          </li>
+        </condition>
+        <set var="output_schedule"></set>
+        <set var="hora_disponibilidad"><srai>iterate <get var="subschedule"/></srai></set>
+        <set var="hora"><srai>iterate <get var="franjas"/></srai></set>
+        <condition var="hora">
+          <li><value><get var="hora_inicio"/></value></li>
+          <li>
+            <set var="franjas"><srai>remove 1 first elements from <get var="franjas"/></srai></set>
+            <set var="hora"><srai>iterate <get var="franjas"/></srai></set>
+            <loop/>
+          </li>
+        </condition>
+        <condition var="hora_disponibilidad">
+          <li value="LIBRE">
+            <set var="output_schedule"><get var="output_schedule"/> <get var="hora"/></set>
+            <set var="subschedule"><srai>remove 1 first elements from <get var="subschedule"/></srai></set>
+            <set var="franjas"><srai>remove 1 first elements from <get var="franjas"/></srai></set>
+            <set var="hora_disponibilidad"><srai>iterate <get var="subschedule"/></srai></set>
+            <set var="hora"><srai>iterate <get var="franjas"/></srai></set>
+            <loop/>
+          </li>
+          <li value="NOLIBRE">
+            <set var="subschedule"><srai>remove 1 first elements from <get var="subschedule"/></srai></set>
+            <set var="franjas"><srai>remove 1 first elements from <get var="franjas"/></srai></set>
+            <set var="hora_disponibilidad"><srai>iterate <get var="subschedule"/></srai></set>
+            <set var="hora"><srai>iterate <get var="franjas"/></srai></set>
+            <loop/>
+          </li>
+          <li></li>
+        </condition>
+        <set var="n_horas"><srai>count <get var="output_schedule"/></srai></set>
+        <set var="output"></set>
+        <condition var="momento_dia">
+          <li value="manyana"><set var="output">por la manyana</set></li>
+          <li value="tarde"><set var="output">por la tarde</set></li>
+        </condition>
+        <condition var="n_horas">
+          <li value="0"><set var="output"><get var="output"/> no nos quedan huecos</set></li>
+          <li><set var="output"><get var="output"/> nos quedan los siguientes huecos libres <get var="output_schedule"/></set></li>
+        </condition>
       <!-- guardamos los huecos libres -->
       <set name="huecos"><get name="huecos"/> <get var="output_schedule"/></set>
-    </think>
-    <get var="output"/>
-  </template>
-</category>
+      </think>
+      <get var="output"/>
+    </template>
+  </category>
 
-<category>
-  <pattern>^ horas libres <set>partes_dia</set> [el del] [siguiente proximo] <set>weekday_es</set> a partir de las <set>horas</set></pattern>
-  <template>
 
-      <set var="parte_dia"><star index="2"/></set>
-      <set var="hora_inicio"><star index="4"/></set>
-      <set var="dias_proximo"><srai>days until <star index="3"/></srai></set>
-      <set var="proximo"><srai>date in <get var="dias_proximo"/> days</srai></set>
-      <set var="dia"><srai>selectitem 1 in <get var="proximo"/></srai></set>
-      <set var="mes"><srai>selectitem 2 in <get var="proximo"/></srai></set>
-      <set var="anyo"><srai>selectitem 3 in <get var="proximo"/></srai></set>
+  <!-- análoga a la regla anterior pero para un dia completo -->
+  <category>
+    <pattern>horas libres dia * de * del * a partir de las <set>horas</set></pattern>
+    <template>
+      <think>
+        <set var="hora_inicio"><star index="4"/></set>
+        <set var="n_dia_mes"><srai>day2twodigits <star index="1"/></srai></set>
+        <set var="momento_dia"><star index="1"/></set>
+        <set var="date"><get var="n_dia_mes"/>_<map name="meses"><star index="2"/></map>_<star index="3"/></set>
+        <set var="franjas">08:00 09:00 10:00 11:00 12:00 13:00 14:00 15:00 16:00 17:00 18:00 19:00</set>
+        <set var="subschedule"><srai>SUBLIST FROM <srai>ORDINAL <get var="hora_inicio"/></srai> TO <srai>ORDINAL 19:00</srai> OF <map name="eventos"><get var="date"/></map></srai></set>
+        <set var="output_schedule"></set>
+        <set var="hora_disponibilidad"><srai>iterate <get var="subschedule"/></srai></set>
+        <set var="hora"><srai>iterate <get var="franjas"/></srai></set>
+        <condition var="hora">
+          <li><value><get var="hora_inicio"/></value></li>
+          <li>
+            <set var="franjas"><srai>remove 1 first elements from <get var="franjas"/></srai></set>
+            <set var="hora"><srai>iterate <get var="franjas"/></srai></set>
+            <loop/>
+          </li>
+        </condition>
+        <condition var="hora_disponibilidad">
+          <li value="LIBRE">
+            <set var="output_schedule"><get var="output_schedule"/> <get var="hora"/></set>
+            <set var="subschedule"><srai>remove 1 first elements from <get var="subschedule"/></srai></set>
+            <set var="franjas"><srai>remove 1 first elements from <get var="franjas"/></srai></set>
+            <set var="hora_disponibilidad"><srai>iterate <get var="subschedule"/></srai></set>
+            <set var="hora"><srai>iterate <get var="franjas"/></srai></set>
+            <loop/>
+          </li>
+          <li value="NOLIBRE">
+            <set var="subschedule"><srai>remove 1 first elements from <get var="subschedule"/></srai></set>
+            <set var="franjas"><srai>remove 1 first elements from <get var="franjas"/></srai></set>
+            <set var="hora_disponibilidad"><srai>iterate <get var="subschedule"/></srai></set>
+            <set var="hora"><srai>iterate <get var="franjas"/></srai></set>
+            <loop/>
+          </li>
+          <li></li>
+        </condition>
+        <set var="n_horas"><srai>count <get var="output_schedule"/></srai></set>
+        <set var="output"></set>
+        <condition var="momento_dia">
+          <li value="manyana"><set var="output">por la manyana</set></li>
+          <li value="tarde"><set var="output">por la tarde</set></li>
+        </condition>
+        <condition var="n_horas">
+          <li value="0"><set var="output"><get var="output"/> no nos quedan huecos</set></li>
+          <li><set var="output"><get var="output"/> nos quedan los siguientes huecos libres <get var="output_schedule"/></set></li>
+        </condition>
+        <!-- guardamos los huecos libres -->
+        <set name="huecos"><get name="huecos"/> <get var="output_schedule"/></set>
+      </think>
+      <get var="output"/>
+    </template>
+  </category>
 
-    El proximo <star index="3"/> <get var="dia"/> de <get var="mes"/> del <get var="anyo"/> <srai>horas libres <get var="parte_dia"/> <srai>day2twodigits <get var="dia"/></srai> de <get var="mes"/> del <get var="anyo"/> a partir de las <get var="hora_inicio"/></srai>
-  </template>
-</category>
+  <!--
+    Ejemplo: obteniendo los huecos libres por la mañana del siguiente lunes a partir de las 17p.m
+     Comando: horas libres tarde del siguiente lunes a partir de las 17:00
+  -->
+  <category>
+    <pattern>^ horas libres <set>partes_dia</set> [el del] [siguiente proximo] <set>weekday_es</set> a partir de las <set>horas</set></pattern>
+    <template>
+      <think>
+        <set var="parte_dia"><star index="2"/></set>
+        <set var="hora_inicio"><star index="4"/></set>
+        <set var="dias_proximo"><srai>days until <star index="3"/></srai></set>
+        <set var="proximo"><srai>date in <get var="dias_proximo"/> days</srai></set>
+        <set var="dia"><srai>selectitem 1 in <get var="proximo"/></srai></set>
+        <set var="mes"><srai>selectitem 2 in <get var="proximo"/></srai></set>
+        <set var="anyo"><srai>selectitem 3 in <get var="proximo"/></srai></set>
+      </think>
+      El proximo <star index="3"/> <get var="dia"/> de <get var="mes"/> del <get var="anyo"/> <srai>horas libres <get var="parte_dia"/> <srai>day2twodigits <get var="dia"/></srai> de <get var="mes"/> del <get var="anyo"/> a partir de las <get var="hora_inicio"/></srai>
+    </template>
+  </category>
 
-<category>
-  <pattern>^ horas libres <set>partes_dia</set> de <set>opciones_consulta</set> a partir de las <set>horas</set></pattern>
-  <template>
-    <think>
-      <set var="parte_dia"><star index="2"/></set>
-      <set var="opcion_dia"><star index="3"/></set>
-      <set var="hora_inicio"><star index="4"/></set>
-      <condition var="opcion_dia">
-        <li value="hoy"><set var="opcion_dia"><srai>day</srai></set></li>
-        <li value="manyana"><set var="opcion_dia"><srai>tomorrow</srai></set></li>
-        <li value="pasado manyana"><set var="opcion_dia"><srai>day after tomorrow</srai></set></li>
-      </condition>
-      <set var="dias_proximo"><srai>days until <get var="opcion_dia"/></srai></set>
-      <set var="proximo"><srai>date in <get var="dias_proximo"/> days</srai></set>
-      <set var="dia"><srai>selectitem 1 in <get var="proximo"/></srai></set>
-      <set var="mes"><srai>selectitem 2 in <get var="proximo"/></srai></set>
-      <set var="anyo"><srai>selectitem 3 in <get var="proximo"/></srai></set>
-    </think>
-    <star index="3"/> <get var="opcion_dia"/> <get var="dia"/> de <get var="mes"/> del <get var="anyo"/> <srai>horas libres <get var="parte_dia"/> <srai>day2twodigits <get var="dia"/></srai> de <get var="mes"/> del <get var="anyo"/> a partir de las <get var="hora_inicio"/></srai>
-  </template>
-</category>
+  <!-- análoga a la regla anterior pero para hoy|manyana|pasado manyana -->
+  <category>
+    <pattern>^ horas libres <set>partes_dia</set> de <set>opciones_consulta</set> a partir de las <set>horas</set></pattern>
+    <template>
+      <think>
+        <set var="parte_dia"><star index="2"/></set>
+        <set var="opcion_dia"><star index="3"/></set>
+        <set var="hora_inicio"><star index="4"/></set>
+        <condition var="opcion_dia">
+          <li value="hoy"><set var="opcion_dia"><srai>day</srai></set></li>
+          <li value="manyana"><set var="opcion_dia"><srai>tomorrow</srai></set></li>
+          <li value="pasado manyana"><set var="opcion_dia"><srai>day after tomorrow</srai></set></li>
+        </condition>
+        <set var="dias_proximo"><srai>days until <get var="opcion_dia"/></srai></set>
+        <set var="proximo"><srai>date in <get var="dias_proximo"/> days</srai></set>
+        <set var="dia"><srai>selectitem 1 in <get var="proximo"/></srai></set>
+        <set var="mes"><srai>selectitem 2 in <get var="proximo"/></srai></set>
+        <set var="anyo"><srai>selectitem 3 in <get var="proximo"/></srai></set>
+      </think>
+      <star index="3"/> <get var="opcion_dia"/> <get var="dia"/> de <get var="mes"/> del <get var="anyo"/> <srai>horas libres <get var="parte_dia"/> <srai>day2twodigits <get var="dia"/></srai> de <get var="mes"/> del <get var="anyo"/> a partir de las <get var="hora_inicio"/></srai>
+    </template>
+  </category>
 
 <!-- Reglas para gestionar citas en un día especificado con <ESPECIFICA DIA> -->
 
-<!-- Por la mañana/tarde -->
-<category>
-  <pattern>^ [gustaria dese+ qui+] ^ (una) cita ^ [al el] * de * del * por la <set>partes_dia</set></pattern>
-  <template>
-    asdasd
-  </template>
-</category>
+  <!--
+    Ejemplo: pedir cita para manyana
+     Comando: quiero una cita para manyana
+  -->
+  <category>
+    <pattern>^ [gustaria dese+ qui+] ^ (una) cita ^ <set>opciones_consulta</set> ^</pattern>
+    <template>
+      <think>
+        <set var="opcion_dia"><star index="4"/></set>
+        <condition var="opcion_dia">
+          <li value="hoy"><set var="opcion_dia"><srai>day</srai></set></li>
+          <li value="manyana"><set var="opcion_dia"><srai>tomorrow</srai></set></li>
+          <li value="pasado manyana"><set var="opcion_dia"><srai>day after tomorrow</srai></set></li>
+        </condition>
+        <set var="dias_proximo"><srai>days until <get var="opcion_dia"/></srai></set>
+        <set var="proximo"><srai>date in <get var="dias_proximo"/> days</srai></set>
+        <set var="dia"><srai>selectitem 1 in <get var="proximo"/></srai></set>
+        <set var="mes"><srai>selectitem 2 in <get var="proximo"/></srai></set>
+        <set var="anyo"><srai>selectitem 3 in <get var="proximo"/></srai></set>
+      </think>
+      quiero una cita para el <get var="dia"/> de <get var="mes"/> del <get var="anyo"/>
+      <srai>quiero una cita para el <get var="dia"/> de <get var="mes"/> del <get var="anyo"/></srai>
+    </template>
+  </category>
+
+  <!--
+    Ejemplo: pedir cita para el proximo miercoles
+     Comando: me gustaria pedir una cita para el proximo miercoles
+  -->
+  <category>
+    <pattern>^ [gustaria dese+ qui+] ^ (una) cita ^ [el del] [siguiente proximo] <set>weekday_es</set> ^</pattern>
+    <template>
+      <think>
+        <set var="dias_proximo"><srai>days until <star index="4"/></srai></set>
+        <set var="proximo"><srai>date in <get var="dias_proximo"/> days</srai></set>
+        <set var="dia"><srai>selectitem 1 in <get var="proximo"/></srai></set>
+        <set var="mes"><srai>selectitem 2 in <get var="proximo"/></srai></set>
+        <set var="anyo"><srai>selectitem 3 in <get var="proximo"/></srai></set>
+      </think>
+      quiero una cita para el <get var="dia"/> de <get var="mes"/> del <get var="anyo"/>
+      <srai>quiero una cita para el <get var="dia"/> de <get var="mes"/> del <get var="anyo"/></srai>
+    </template>
+  </category>
+
+  <!-- Posibles respuestas para la gestion de citas -->
+  <category>
+    <pattern>^ [siguiente proximo] <set>weekday_es</set> ^</pattern>
+    <that>Para que dia desea un hueco</that>
+    <template>
+      <srai>quiero una cita para el siguiente <star index="2"/></srai>
+    </template>
+  </category>
+
+  <category>
+    <pattern>^ <set>opciones_consulta</set> ^</pattern>
+    <that>Para que dia desea un hueco</that>
+    <template>
+      <srai>quiero una cita para <star index="2"/></srai>
+    </template>
+  </category>
+
+  <category>
+    <pattern>^  [siguiente proximo] <set>weekday_es</set> ^</pattern>
+    <that>Vale, pues digame para cuando quiere la cita</that>
+    <template>
+      <srai>quiero una cita para el proximo <star index="2"/></srai>
+    </template>
+  </category>
+
+  <category>
+    <pattern>^ <set>opciones_consulta</set> ^</pattern>
+    <that>Vale, pues digame para cuando quiere la cita</that>
+    <template>
+      <srai>quiero una cita para <star index="2"/></srai>
+    </template>
+  </category>
 
 </aiml>
