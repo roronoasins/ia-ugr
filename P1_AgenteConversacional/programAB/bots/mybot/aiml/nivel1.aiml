@@ -6,8 +6,8 @@
     <template>actualmente en el <set name="topic">nivel1</set>
     </template>
   </category>
-
-  <topic name="nivel1">
+<!--
+  <topic name="nivel1">-->
 
     <!-- Se obtiene mediante el map la lista correspondiente a una fecha concreta,
         a continuación se comprueba si hay algun LIBRE en la sublista desde las 8:00 hasta las 20:00(lo que supone que un dia este libre o no)-->
@@ -15,7 +15,7 @@
       <pattern>esta libre el * de * del *</pattern>
       <template>
         <think>
-          <set var="date"><star index="1"/>_<map name="meses"><star index="2"/></map>_<star index="3"/></set>
+          <set var="date"><srai>day2twodigits <star index="1"/></srai>_<map name="meses"><star index="2"/></map>_<star index="3"/></set>
           <set var="subschedule"><srai>SUBLIST FROM <srai>ORDINAL 08:00</srai> TO <srai>ORDINAL 19:00</srai> OF <map name="eventos"><get var="date"/></map></srai></set>
           <set var="algun_libre"><srai>FINDITEM LIBRE IN <get var="subschedule"/></srai></set>
         </think>
@@ -26,9 +26,9 @@
       </template>
     </category>
 
-    <!-- Regla que comprueba la disponibilidad de un dia con formato DD_MM_YY -->
+    <!-- Regla que comprueba la disponibilidad de un dia con formato DD_MM_YY para usar al obtener la fecha en la regla de citas-->
     <category>
-      <pattern>esta libre el *</pattern>
+      <pattern>esta libre el * formato fecha</pattern>
       <template>
         <think>
           <set var="subschedule"><srai>SUBLIST FROM <srai>ORDINAL 08:00</srai> TO <srai>ORDINAL 19:00</srai> OF <map name="eventos"><star/></map></srai></set>
@@ -44,17 +44,18 @@
 
     <!-- Regla para pedir cita un dia concreto -->
     <category>
-      <pattern>^ [gustaria dese+ qui+] ^ (una) cita ^ [al el] * de * del *</pattern>
+      <pattern>^ [gustaria dese+ qui+] ^ (una) cita ^ [al el] * de * del <set>number</set></pattern>
       <template>
         Dejeme comprobar como tengo ese dia.
         <think>
-          <set var="date"><star index="4"/>_<map name="meses"><star index="5"/></map>_<star index="6"/></set>
-          <set var="respuesta"><srai>esta libre el <get var="date"/></srai></set>
+          <set var="n_dia_mes"><srai>day2twodigits <star index="4"/></srai></set>
+          <set var="date"><get var="n_dia_mes"/>_<map name="meses"><star index="5"/></map>_<star index="6"/></set>
+          <set var="respuesta"><srai>esta libre el <get var="date"/> formato fecha</srai></set>
         </think>
         <condition var="respuesta">
           <li value="Si esta libre">
-            <think><set name="dia_cita"><get var="date"/></set><set name="dia_cita2"><star index="4"/> de <star index="5"/> del <star index="6"/></set></think>
-            <srai>horas libres dia <star index="4"/> de <star index="5"/> del <star index="6"/></srai>.
+            <think><set name="dia_cita"><get var="date"/></set><set name="dia_cita2"><get var="n_dia_mes"/> de <star index="5"/> del <star index="6"/></set></think>
+            <srai>horas libres dia <get var="n_dia_mes"/> de <star index="5"/> del <star index="6"/></srai>.
           </li>
           <li value="No esta libre">Lo siento, no nos queda ningun hueco para ese día.</li>
         </condition>
@@ -246,5 +247,5 @@
       </template>
     </category>
 
-  </topic>
+<!--  </topic>-->
 </aiml>

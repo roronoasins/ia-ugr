@@ -243,6 +243,34 @@ SUBLIST FROM 2 TO 4 OF A B C D E -> B C D -->
     </template>
 </category>
 
+<!-- Función para convertir los días con un solo dígito en 2 -->
 
+   <category>
+
+       <pattern>DAY2TWODIGITS <set>number</set></pattern>
+
+       <template>
+
+           <think>
+
+           <set var="salida"><star/></set>
+
+           <set var="digit"><srai>DELETREA <star/></srai></set>
+
+           <set var="long"><srai>COUNT <get var="digit"/></srai></set>
+
+           <condition var="long">
+
+               <li value="1"><set var="salida">0<get var="digit"/></set></li>
+
+           </condition>
+
+           </think>
+
+           <get var="salida"/>
+
+       </template>
+
+   </category> 
 
 </aiml>

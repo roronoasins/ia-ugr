@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<aiml version="xaiml1.1.0" xmlns="http://www.nttdocomo.com/aiml/schema" xmlns:html="http://www.w3.org/1999/xhtml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.nttdocomo.com/aiml/schema/AIML.xsd">
+
+<!--
+  <DESCRIPCION FECHA>::= <ESPECIFICA DIA> <COMPLEMENTO>
+  <ESPECIFICA DIA>::= <FECHA CONCRETA> | HOY | MANYANA| PASADO MANYANA|
+  PROXIMO <DIA SEMANA> | SIGUIENTE <DIA SEMANA>
+  <FECHA CONCRETA>::= 13 de Febrero del 21
+  <DIA SEMANA>::= LUNES | MARTES | MIERCOLES | JUEVES | VIERNES
+  <COMPLEMENTO>::= POR LA <FIN COMPLEMENTO> |
+  <FIN COMPLEMENTO> | A PARTIR DE LAS <HORA>
+  <FIN COMPLEMENTO>::= MANYANA | TARDE
+  <HORA>::= HH:00
+-->
+
+<!-- Informar del estado de un día especificado con <ESPECIFICA DIA> -->
+
+  <category>
+    <pattern>^ libre el [siguiente proximo] <set>weekday_es</set> (por la <set>partes_dia</set>)</pattern>
+    <template>
+      <think>
+        <set var="dias_proximo"><srai>days until <star index="2"/></srai></set>
+        <set var="proximo"><srai>date in <get var="dias_proximo"/> days</srai></set>
+        <set var="dia"><srai>selectitem 1 in <get var="proximo"/></srai></set>
+        <set var="mes"><srai>selectitem 2 in <get var="proximo"/></srai></set>
+        <set var="anyo"><srai>selectitem 3 in <get var="proximo"/></srai></set>
+      </think>
+      <srai>esta libre el <get var="dia"/> de <get var="mes"/> del <get var="anyo"/></srai>
+    </template>
+  </category>
+
+<!-- Informar de las franjas libres en un día especificado con <ESPECIFICA DIA> -->
+<!-- Informar de las franjas libres por la mañana en un día especificado con <ESPECIFICA DIA> -->
+<!-- Informar de las franjas libres por la tarde en un día especificado con <ESPECIFICA DIA> -->
+
+  <category>
+    <pattern>^ horas libres * [siguiente proximo] <set>weekday_es</set></pattern>
+    <template>
+      <think>
+        <set var="parte_dia"><star index="2"/></set>
+        <set var="dias_proximo"><srai>days until <star index="3"/></srai></set>
+        <set var="proximo"><srai>date in <get var="dias_proximo"/> days</srai></set>
+        <set var="dia"><srai>selectitem 1 in <get var="proximo"/></srai></set>
+        <set var="mes"><srai>selectitem 2 in <get var="proximo"/></srai></set>
+        <set var="anyo"><srai>selectitem 3 in <get var="proximo"/></srai></set>
+      </think>
+      El proximo <star index="3"/> <srai>horas libres <get var="parte_dia"/> <srai>day2twodigits <get var="dia"/></srai> de <get var="mes"/> del <get var="anyo"/></srai>
+    </template>
+  </category>
+
+
+<!-- Informar de las franjas libres a partir de una hora dada en un día especificado con <ESPECIFICA DIA> -->
+
+<!-- Reglas para gestionar citas en un día especificado con <ESPECIFICA DIA> -->
+
+<!-- Por la mañana/tarde -->
+<category>
+  <pattern>^ [gustaria dese+ qui+] ^ (una) cita ^ [al el] * de * del * por la *</pattern>
+  <template>
+    asdasd
+  </template>
+</category>
+
+</aiml>
