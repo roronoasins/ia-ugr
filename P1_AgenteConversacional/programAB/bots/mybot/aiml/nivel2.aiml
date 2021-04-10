@@ -295,6 +295,57 @@
     </template>
   </category>
 
+  <category>
+    <pattern>^ [gustaria dese+ qui+] ^ (una) cita ^ [al el] * de * del <set>number</set> a partir de las <set>horas</set> ^</pattern>
+    <template>
+      Dejeme comprobar como tengo ese dia.
+      <think>
+        <set var="n_dia_mes"><srai>day2twodigits <star index="4"/></srai></set>
+        <set var="date"><get var="n_dia_mes"/>_<map name="meses"><star index="5"/></map>_<star index="6"/></set>
+        <set var="respuesta"><srai>esta libre el <get var="date"/> formato fecha a partir de las <star index="7"/></srai></set>
+      </think>
+      <condition var="respuesta">
+        <li value="Si esta libre">
+          <think><set name="dia_cita"><get var="date"/></set><set name="dia_cita2"><get var="n_dia_mes"/> de <star index="5"/> del <star index="6"/></set></think>
+          <srai>horas libres dia <get var="n_dia_mes"/> de <star index="5"/> del <star index="6"/> a partir de las <star index="7"/></srai>.
+        </li>
+        <li value="No esta libre">Lo siento, no nos queda ningun hueco para ese día.</li>
+      </condition>
+      <condition var="respuesta">
+        <li value="Si esta libre">Desea alguno en concreto</li>
+        <li value="No esta libre">Desea que la cita sea otro dia</li>
+      </condition>
+    </template>
+  </category>
+
+  <category>
+    <pattern>^ [gustaria dese+ qui+] ^ (una) cita ^ [al el] * de * del <set>number</set> por la <set>partes_dia</set> ^</pattern>
+    <template>
+      Dejeme comprobar como tengo ese dia.
+      <think>
+        <set var="momento"><star index="7"/></set>
+        <condition var="momento">
+          <li value="manyana"><set var="hora">08:00</set></li>
+          <li value="tarde"><set var="hora">13:00</set></li>
+        </condition>
+        <set var="n_dia_mes"><srai>day2twodigits <star index="4"/></srai></set>
+        <set var="date"><get var="n_dia_mes"/>_<map name="meses"><star index="5"/></map>_<star index="6"/></set>
+        <set var="respuesta"><srai>esta libre el <get var="date"/> formato fecha a partir de las <get var="hora"/></srai></set>
+      </think>
+      <condition var="respuesta">
+        <li value="Si esta libre">
+          <think><set name="dia_cita"><get var="date"/></set><set name="dia_cita2"><get var="n_dia_mes"/> de <star index="5"/> del <star index="6"/></set></think>
+          <srai>horas libres <star index="7"/> <get var="n_dia_mes"/> de <star index="5"/> del <star index="6"/></srai>.
+        </li>
+        <li value="No esta libre">Lo siento, no nos queda ningun hueco para ese día.</li>
+      </condition>
+      <condition var="respuesta">
+        <li value="Si esta libre">Desea alguno en concreto</li>
+        <li value="No esta libre">Desea que la cita sea otro dia</li>
+      </condition>
+    </template>
+  </category>
+
   <!--
     Ejemplo: pedir cita para el proximo miercoles
      Comando: me gustaria pedir una cita para el proximo miercoles
@@ -309,8 +360,51 @@
         <set var="mes"><srai>selectitem 2 in <get var="proximo"/></srai></set>
         <set var="anyo"><srai>selectitem 3 in <get var="proximo"/></srai></set>
       </think>
-      quiero una cita para el <get var="dia"/> de <get var="mes"/> del <get var="anyo"/>
       <srai>quiero una cita para el <get var="dia"/> de <get var="mes"/> del <get var="anyo"/></srai>
+    </template>
+  </category>
+
+  <category>
+    <pattern>^ [gustaria dese+ qui+] ^ (una) cita ^ [el del] [siguiente proximo] <set>weekday_es</set> a partir de las <set>horas</set> ^</pattern>
+    <template>
+      <think>
+        <set var="dias_proximo"><srai>days until <star index="4"/></srai></set>
+        <set var="proximo"><srai>date in <get var="dias_proximo"/> days</srai></set>
+        <set var="dia"><srai>selectitem 1 in <get var="proximo"/></srai></set>
+        <set var="mes"><srai>selectitem 2 in <get var="proximo"/></srai></set>
+        <set var="anyo"><srai>selectitem 3 in <get var="proximo"/></srai></set>
+      </think>
+      <srai>quiero una cita para el <get var="dia"/> de <get var="mes"/> del <get var="anyo"/> a partir de las <star index="5"/></srai>
+    </template>
+  </category>
+
+  <category>
+    <pattern>^ [gustaria dese+ qui+] ^ (una) cita ^ [el del] [siguiente proximo] <set>weekday_es</set> por la <set>partes_dia</set> ^</pattern>
+    <template>
+      <think>
+        <set var="dias_proximo"><srai>days until <star index="4"/></srai></set>
+        <set var="proximo"><srai>date in <get var="dias_proximo"/> days</srai></set>
+        <set var="dia"><srai>selectitem 1 in <get var="proximo"/></srai></set>
+        <set var="mes"><srai>selectitem 2 in <get var="proximo"/></srai></set>
+        <set var="anyo"><srai>selectitem 3 in <get var="proximo"/></srai></set>
+      </think>
+      <srai>quiero una cita para el <get var="dia"/> de <get var="mes"/> del <get var="anyo"/> por la <star index="5"/></srai>
+    </template>
+  </category>
+
+  <category>
+    <pattern>esta libre el * formato fecha a partir de las <set>horas</set></pattern>
+    <template>
+      <think>
+        <set var="hora"><star index="2"/></set>
+        <set var="subschedule"><srai>SUBLIST FROM <srai>ORDINAL <get var="hora"/></srai> TO <srai>ORDINAL 19:00</srai> OF <map name="eventos"><star/></map></srai></set>
+        <set var="algun_libre"><srai>FINDITEM LIBRE IN <get var="subschedule"/></srai></set>
+      </think>
+      <condition var="algun_libre">
+        <li value="0">No esta libre</li>
+        <li>Si esta libre</li>
+        hacer que conteste si tiene hueco pr la manyana, tarde o ambos junto a las horas libres
+      </condition>
     </template>
   </category>
 
@@ -344,6 +438,22 @@
     <that>Vale, pues digame para cuando quiere la cita</that>
     <template>
       <srai>quiero una cita para <star index="2"/></srai>
+    </template>
+  </category>
+
+  <category>
+    <pattern>^ [siguiente proximo] <set>weekday_es</set> ^</pattern>
+    <that>Vale, pues digame para cuando quiere la cita</that>
+    <template>
+      <srai>quiero una cita para el proximo <star index="2"/></srai>
+    </template>
+  </category>
+
+  <category>
+    <pattern>^ [siguiente proximo] <set>weekday_es</set> a partir de las <set>horas</set> ^</pattern>
+    <that>Vale, pues digame para cuando quiere la cita</that>
+    <template>
+      <srai>quiero una cita para el proximo <star index="2"/> a partir de las <star index="3"/></srai>
     </template>
   </category>
 

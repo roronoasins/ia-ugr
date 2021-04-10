@@ -97,10 +97,10 @@
     </category>
 
     <category>
-      <pattern>^  * de * del <set>number</set> ^</pattern>
+      <pattern>^ [viene dame para] ^ <set>number</set> de * del <set>number</set> ^</pattern>
       <that>Vale, pues digame para cuando quiere la cita</that>
       <template>
-        <srai>quiero una cita para el <star index="2"/> de <star index="3"/> del <star index="4"/></srai>
+        <srai>quiero una cita para el <star index="3"/> de <star index="4"/> del <star index="5"/></srai>
       </template>
     </category>
 
@@ -110,6 +110,22 @@
       <that>Desea que la cita sea otro dia</that>
       <template>
         Vale, gracias por su paciencia. Que tenga un buen dia.
+      </template>
+    </category>
+
+    <category>
+      <pattern>^ [no otro] ^</pattern>
+      <that>Desea que la cita sea otro dia</that>
+      <template>
+        Vale, pues digame para cuando quiere la cita
+      </template>
+    </category>
+
+    <category>
+      <pattern>^ si ^</pattern>
+      <that>Desea que la cita sea otro dia</that>
+      <template>
+        Vale, pues digame para cuando quiere la cita
       </template>
     </category>
 
