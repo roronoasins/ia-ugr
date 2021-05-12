@@ -1,0 +1,38 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/roronoasins/Documents/ia-ugr/P2_AgentesReactivosDeliberativos/Comportamientos_Jugador/jugador.cpp
+../Comportamientos_Jugador/jugador.hpp
+/home/roronoasins/Documents/ia-ugr/P2_AgentesReactivosDeliberativos/Comportamientos_Jugador/jugador.hpp
+motorlib/util.h
+/home/roronoasins/Documents/ia-ugr/P2_AgentesReactivosDeliberativos/Comportamientos_Jugador/motorlib/util.h
+iostream
+-
+cmath
+-
+set
+-
+stack
+-
+queue
+-
+
+/home/roronoasins/Documents/ia-ugr/P2_AgentesReactivosDeliberativos/Comportamientos_Jugador/jugador.hpp
+comportamientos/comportamiento.hpp
+/home/roronoasins/Documents/ia-ugr/P2_AgentesReactivosDeliberativos/Comportamientos_Jugador/comportamientos/comportamiento.hpp
+list
+-
+
+include/comportamientos/comportamiento.hpp
+vector
+-
+
+include/motorlib/util.h
+cstdlib
+-
+
