@@ -21,11 +21,15 @@ stack
 -
 queue
 -
+unistd.h
+-
 
 /home/roronoasins/Documents/ia-ugr/P2_AgentesReactivosDeliberativos/Comportamientos_Jugador/jugador.hpp
 comportamientos/comportamiento.hpp
 /home/roronoasins/Documents/ia-ugr/P2_AgentesReactivosDeliberativos/Comportamientos_Jugador/comportamientos/comportamiento.hpp
 list
+-
+string
 -
 
 include/comportamientos/comportamiento.hpp

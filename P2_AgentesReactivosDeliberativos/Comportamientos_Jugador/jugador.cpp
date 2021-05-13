@@ -6,7 +6,7 @@
 #include <set>
 #include <stack>
 #include <queue>
-
+#include <unistd.h>
 
 // Este es el método principal que se piden en la practica.
 // Tiene como entrada la información de los sensores y devuelve la acción a realizar.
@@ -64,9 +64,11 @@ bool ComportamientoJugador::pathFinding (int level, const estado &origen, const 
 						cout << "fila: " << objetivo_anchura.fila << " col:" << objetivo_anchura.columna << endl;
 						return pathFinding_Anchura(origen,objetivo_anchura,plan);
 						break;
-		case 2: cout << "Optimo en coste 1 Objetivo\n";
-						// Incluir aqui la llamada al busqueda de costo uniforme
-						cout << "No implementado aun\n";
+		case 2: cout << "Optimo en coste 1 Objetivo - A*\n";
+						estado objetivo_astar;
+						objetivo_astar = objetivos.front();
+						cout << "fila: " << objetivo_astar.fila << " col:" << objetivo_astar.columna << endl;
+						return pathFinding_Astar(origen,objetivo_astar,plan);
 						break;
 		case 3: cout << "Optimo en coste 3 Objetivos\n";
 						// Incluir aqui la llamada al algoritmo de busqueda para 3 objetivos
@@ -123,13 +125,11 @@ bool ComportamientoJugador::HayObstaculoDelante(estado &st){
 	}
 }
 
-
-
-
 struct nodo{
 	estado st;
 	list<Action> secuencia;
-	int f,g,h;
+	int f, g, h;
+	bool zapatillas, bikini;
 };
 
 struct ComparaEstados{
@@ -287,8 +287,160 @@ bool ComportamientoJugador::pathFinding_Anchura(const estado &origen, const esta
 	return false;
 }
 
+// Búsqueda A*
+
+class open_comparison
+{
+public:
+  open_comparison() {}
+  bool operator() (const nodo& n1, const nodo& n2) const
+  {
+		return n1.f > n2.f ;
+  }
+};
+
+int coste(const nodo& nodo, const char &terreno, const string &accion)
+{
+	if(accion == "forward")
+	{
+		switch (terreno) {
+			case 'A':
+				return (nodo.bikini) ? 10 : 200;
+			case 'B':
+				return (nodo.zapatillas) ? 15 : 100;
+			case 'T':
+				return 2;
+			default:
+				return 1;
+		}
+	}else if(accion == "t_right" || accion == "t_left")
+	{
+		switch (terreno) {
+			case 'A':
+				return (nodo.bikini) ? 5 : 500;
+			case 'B':
+				return (nodo.zapatillas) ? 1 : 3;
+			case 'T':
+				return 2;
+			default:
+				return 1;
+		}
+	}
+	return 0;
+}
+
+int ComportamientoJugador::DistanciaMH(const estado& x, const estado& y)
+{
+	return (int) (abs(x.fila - y.fila) + abs(x.columna - y.columna));
+}
+
+void checkEquipment(nodo& nodo, const char& celda)
+{
+	if (celda == 'K')
+	 	nodo.bikini = true;
+	else if (celda == 'D')
+		nodo.zapatillas = true;
+}
+
 bool ComportamientoJugador::pathFinding_Astar(const estado &origen, const estado &destino, list<Action> &plan)
 {
+	//Borro la lista
+	cout << "Calculando plan A*\n";
+	plan.clear();
+	set<estado,ComparaEstados> Cerrados; 														// Lista de Cerrados
+	priority_queue<nodo, vector<nodo>, open_comparison> Abiertos;		// Lista de Abiertos
+	nodo mejor_padre;
+	vector<nodo> hijos;
+
+	nodo current;
+	current.st = origen;
+	checkEquipment(current, mapaResultado[current.st.fila][current.st.columna]);
+	current.g = coste(current, mapaResultado[current.st.fila][current.st.columna], "idle");
+	//cout << "nodo actual -> fila: " << current.st.fila << ", columna: " << current.st.columna << ". Bikini: " << current.bikini << ", zapatillas: " << current.zapatillas << endl;
+	current.h = DistanciaMH(current.st, destino);
+	current.f = current.g + current.h;
+	current.secuencia.empty();
+
+	Abiertos.push(current);
+
+	while (!Abiertos.empty() and (current.st.fila != destino.fila or current.st.columna != destino.columna))
+	{
+		Abiertos.pop();
+		Cerrados.insert(current.st);
+		//cout << "nodo actual -> fila: " << current.st.fila << ", columna: " << current.st.columna << endl;
+		// se expande dicho nodo
+		// Generar descendiente de girar a la derecha
+		nodo hijoTurnR = current;
+		checkEquipment(hijoTurnR, mapaResultado[hijoTurnR.st.fila][hijoTurnR.st.columna]);
+		//cout << "nodo derecha -> fila: " << hijoTurnR.st.fila << ", columna: " << hijoTurnR.st.columna << ". Bikini: " << hijoTurnR.bikini << ", zapatillas: " << hijoTurnR.zapatillas << endl;
+		hijoTurnR.st.orientacion = (hijoTurnR.st.orientacion+1)%4;
+		//cout << hijoTurnR.g << endl;
+		hijoTurnR.g += coste(hijoTurnR, mapaResultado[hijoTurnR.st.fila][hijoTurnR.st.columna], "t_right");
+		hijoTurnR.h = DistanciaMH(hijoTurnR.st, destino);
+		hijoTurnR.f = hijoTurnR.g + hijoTurnR.h;
+		if (Cerrados.find(hijoTurnR.st) == Cerrados.end()){
+			hijoTurnR.secuencia.push_back(actTURN_R);
+			Abiertos.push(hijoTurnR);
+
+		}
+	//	sleep(1);
+
+		// Generar descendiente de girar a la izquierda
+		nodo hijoTurnL = current;
+		checkEquipment(hijoTurnL, mapaResultado[hijoTurnL.st.fila][hijoTurnL.st.columna]);
+		//cout << "nodo izquierda -> fila: " << hijoTurnL.st.fila << ", columna: " << hijoTurnL.st.columna << ". Bikini: " << hijoTurnL.bikini << ", zapatillas: " << hijoTurnL.zapatillas << endl;
+		hijoTurnL.st.orientacion = (hijoTurnL.st.orientacion+3)%4;
+		hijoTurnL.g += coste(hijoTurnR, mapaResultado[hijoTurnL.st.fila][hijoTurnL.st.columna], "t_left");
+		hijoTurnL.h = DistanciaMH(hijoTurnL.st, destino);
+		hijoTurnL.f = hijoTurnL.g + hijoTurnL.h;
+		if (Cerrados.find(hijoTurnL.st) == Cerrados.end()){
+			hijoTurnL.secuencia.push_back(actTURN_L);
+			Abiertos.push(hijoTurnL);
+		}
+		//sleep(1);
+
+		// Generar descendiente de avanzar
+		nodo hijoForward = current;
+		if (!HayObstaculoDelante(hijoForward.st)){
+			checkEquipment(hijoForward, mapaResultado[hijoForward.st.fila][hijoForward.st.columna]);
+			//cout << "nodo delante -> fila: " << hijoForward.st.fila << ", columna: " << hijoForward.st.columna << ". Bikini: " << hijoForward.bikini << ", zapatillas: " << hijoForward.zapatillas << endl;
+			hijoForward.g += coste(hijoTurnR, mapaResultado[hijoForward.st.fila][hijoForward.st.columna], "forward");
+			hijoForward.h = DistanciaMH(hijoForward.st, destino);
+			hijoForward.f = hijoForward.g + hijoForward.h;
+			if (Cerrados.find(hijoForward.st) == Cerrados.end()){
+				hijoForward.secuencia.push_back(actFORWARD);
+				Abiertos.push(hijoForward);
+			}
+		}
+
+		//sleep(1);
+		
+		//Seleccionar el mejor nodo de ABIERTOS
+		if (!Abiertos.empty()){
+			current = Abiertos.top();
+			//cout << "Siguiente nodo: "<< current.f << endl;
+		}
+
+
+	}
+
+	cout << "Terminada la busqueda\n";
+
+	if (current.st.fila == destino.fila and current.st.columna == destino.columna){
+		cout << "Cargando el plan\n";
+		plan = current.secuencia;
+		cout << "Longitud del plan: " << plan.size() << endl;
+		PintaPlan(plan);
+		// ver el plan en el mapa
+		VisualizaPlan(origen, plan);
+		return true;
+	}
+	else {
+		cout << "No encontrado plan\n";
+	}
+
+
+	return false;
 
 }
 

@@ -4,6 +4,7 @@
 #include "comportamientos/comportamiento.hpp"
 
 #include <list>
+#include <string>
 
 struct estado {
   int fila;
@@ -16,6 +17,9 @@ class ComportamientoJugador : public Comportamiento {
     ComportamientoJugador(unsigned int size) : Comportamiento(size) {
       // Inicializar Variables de Estado
       hay_plan = false;
+      bikini = false;
+      zapatillas = false;
+      nivel_bateria = 3000;
     }
     ComportamientoJugador(std::vector< std::vector< unsigned char> > mapaR) : Comportamiento(mapaR) {
       // Inicializar Variables de Estado
@@ -34,11 +38,19 @@ class ComportamientoJugador : public Comportamiento {
     list<estado> objetivos;
     list<Action> plan;
     bool hay_plan;
+    bool bikini;
+    bool zapatillas;
+    int nivel_bateria;
 
     // Métodos privados de la clase
     bool pathFinding(int level, const estado &origen, const list<estado> &destino, list<Action> &plan);
     bool pathFinding_Profundidad(const estado &origen, const estado &destino, list<Action> &plan);
     bool pathFinding_Anchura(const estado &origen, const estado &destino, list<Action> &plan);
+    bool pathFinding_Astar(const estado &origen, const estado &destino, list<Action> &plan);
+
+    int DistanciaMH(const estado& x, const estado& y);
+
+    //int coste(const nodo &nodo, const char &terreno, const char &accion);
 
     void PintaPlan(list<Action> plan);
     bool HayObstaculoDelante(estado &st);
