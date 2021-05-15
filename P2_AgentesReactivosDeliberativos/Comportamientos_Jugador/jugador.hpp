@@ -17,9 +17,6 @@ class ComportamientoJugador : public Comportamiento {
     ComportamientoJugador(unsigned int size) : Comportamiento(size) {
       // Inicializar Variables de Estado
       hay_plan = false;
-      bikini = false;
-      zapatillas = false;
-      nivel_bateria = 3000;
     }
     ComportamientoJugador(std::vector< std::vector< unsigned char> > mapaR) : Comportamiento(mapaR) {
       // Inicializar Variables de Estado
@@ -36,17 +33,23 @@ class ComportamientoJugador : public Comportamiento {
     // Declarar Variables de Estado
     estado actual;
     list<estado> objetivos;
+    estado destino;
     list<Action> plan;
     bool hay_plan;
     bool bikini;
     bool zapatillas;
     int nivel_bateria;
+    int n_destinos;
+    //vector<pair<int,int>> goals;
+    vector<estado> goals;
 
     // Métodos privados de la clase
     bool pathFinding(int level, const estado &origen, const list<estado> &destino, list<Action> &plan);
     bool pathFinding_Profundidad(const estado &origen, const estado &destino, list<Action> &plan);
     bool pathFinding_Anchura(const estado &origen, const estado &destino, list<Action> &plan);
     bool pathFinding_Astar(const estado &origen, const estado &destino, list<Action> &plan);
+    bool pathFinding_Astar_multi(const estado &origen, const list<estado> &destinos, list<Action> &plan);
+    bool busquedaPath(const estado &origen, const list<estado> &destinos, list<Action> &plan);
 
     int DistanciaMH(const estado& x, const estado& y);
 
