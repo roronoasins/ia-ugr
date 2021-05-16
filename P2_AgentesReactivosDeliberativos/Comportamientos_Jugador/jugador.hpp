@@ -49,11 +49,8 @@ class ComportamientoJugador : public Comportamiento {
     bool pathFinding_Anchura(const estado &origen, const estado &destino, list<Action> &plan);
     bool pathFinding_Astar(const estado &origen, const estado &destino, list<Action> &plan);
     bool pathFinding_Astar_multi(const estado &origen, const list<estado> &destinos, list<Action> &plan);
-    bool busquedaPath(const estado &origen, const list<estado> &destinos, list<Action> &plan);
 
     int DistanciaMH(const estado& x, const estado& y);
-
-    //int coste(const nodo &nodo, const char &terreno, const char &accion);
 
     void PintaPlan(list<Action> plan);
     bool HayObstaculoDelante(estado &st);

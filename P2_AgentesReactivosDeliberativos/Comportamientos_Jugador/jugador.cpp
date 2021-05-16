@@ -31,12 +31,17 @@ Action ComportamientoJugador::think(Sensores sensores) {
 	// Capturo los destinos
 	cout << "sensores.num_destinos : " << sensores.num_destinos << endl;
 	objetivos.clear();
+	goals.clear();
 	for (int i=0; i<sensores.num_destinos; i++){
 		estado aux;
 		aux.fila = sensores.destino[2*i];
 		aux.columna = sensores.destino[2*i+1];
 		objetivos.push_back(aux);
+		goals.push_back(aux);
 	}
+//	if(!hay_plan)
+//		if(sensores.nivel==3)
+	//		sortGoals(sensores);
 
 	if(!hay_plan)
 	{
@@ -48,6 +53,7 @@ Action ComportamientoJugador::think(Sensores sensores) {
 	{
 		cout << "El destino ha cambiado\n";
 		hay_plan = false;
+		//updateGoals(sensores);
 	}
 
 	if(hay_plan && plan.size() > 0)
@@ -99,12 +105,12 @@ bool ComportamientoJugador::pathFinding (int level, const estado &origen, const 
 		{
 			cout << "Optimo en coste 3 Objetivos - A*\n";
 			list<estado> objetivos_Astar = objetivos;
-			list<estado>::iterator it=objetivos_Astar.begin();
-			for(it; it != objetivos_Astar.end(); ++it)
-			{
-				cout << (*it).fila << " " << (*it).columna << endl;
-				goals.push_back(*it);
-			}
+		//	list<estado>::iterator it=objetivos_Astar.begin();
+		//	for(it; it != objetivos_Astar.end(); ++it)
+		//	{
+			//	cout << (*it).fila << " " << (*it).columna << endl;
+		//		goals.push_back(*it);
+		//	}
 
 			return pathFinding_Astar_multi(origen, objetivos_Astar, plan);
 			break;
@@ -166,7 +172,7 @@ struct nodo{
 	list<Action> secuencia;
 	int f, g, h;
 	bool zapatillas, bikini;
-	int actual_goal;
+	bool objetivo_alcanzado[3];
 	int dest_reached;
 };
 
@@ -493,24 +499,35 @@ bool ComportamientoJugador::pathFinding_Astar(const estado &origen, const estado
 
 }
 
-int checkDest(nodo& current, const vector<estado> goals, int n_dest)
+void resetLists(nodo &current, set<estado,ComparaEstados> &cerrados, priority_queue<nodo, vector<nodo>, open_comparison> &abiertos)
 {
-	if(current.actual_goal < n_dest)
-	{
-	//	cout << current.actual_goal << endl;
-		if(current.st.fila == goals[current.actual_goal].fila and current.st.columna == goals[current.actual_goal].columna)
-		{
-			//cout << current.st.fila << " " <<  goals[current.actual_goal].fila << " "<<  current.st.columna << " " << goals[current.actual_goal].columna << endl;
-			++current.actual_goal;
-		}
-	return current.actual_goal;
-	}
-	return 0;
+	cerrados.clear();
+	priority_queue<nodo, vector<nodo>, open_comparison> aux;
+	aux.push(current);
+	abiertos.swap(aux);
 }
 
-bool ComportamientoJugador::busquedaPath(const estado &origen, const list<estado> &destinos, list<Action> &plan)
+int checkDest(nodo& current, const vector<estado> goals, int n_dest, set<estado,ComparaEstados> &cerrados, priority_queue<nodo, vector<nodo>, open_comparison> &abiertos)
 {
-	
+	if(current.dest_reached < n_dest)
+	{
+		for(int i=0; i<n_dest; ++i)
+		{
+			if(current.objetivo_alcanzado[i] == false)
+				if(current.st.fila == goals[i].fila and current.st.columna == goals[i].columna)
+				{
+					++current.dest_reached;
+					current.objetivo_alcanzado[i] = true;
+					cout << "--- destino alcanzado: " << i << ", fila: " << goals[i].fila << ", columna: " << goals[i].columna << " ---" <<endl;
+					cout << "destinos encontrados: " << current.dest_reached << endl;
+					resetLists(current, cerrados, abiertos);
+					break;
+				}
+		}
+
+	return current.dest_reached;
+	}
+	return 0;
 }
 
 bool ComportamientoJugador::pathFinding_Astar_multi(const estado &origen, const list<estado> &destinos, list<Action> &plan)
@@ -524,48 +541,46 @@ bool ComportamientoJugador::pathFinding_Astar_multi(const estado &origen, const 
 	vector<nodo> hijos;
 	nodo current;
 	int actual_dest=0;
-	//vector<estado> list_dest;
 	this->destino = goals[actual_dest];
-	current.actual_goal = actual_dest;
 	current.st = origen;
 	current.bikini = 0;
 	current.zapatillas = 0;
 	checkEquipment(current, mapaResultado[current.st.fila][current.st.columna]);
 	current.g = coste(current, mapaResultado[current.st.fila][current.st.columna], "idle");
-	//cout << "nodo actual -> fila: " << current.st.fila << ", columna: " << current.st.columna << ". Bikini: " << current.bikini << ", zapatillas: " << current.zapatillas << endl;
-	current.h = DistanciaMH(current.st, goals[current.actual_goal]);
+	for(int i=0; i<n_destinos; ++i)
+	{
+		current.h += DistanciaMH(current.st, goals[i]);
+		current.objetivo_alcanzado[i] = false;
+	}
 	current.f = current.g + current.h;
 	current.secuencia.empty();
 	current.dest_reached = 0;
 
 	Abiertos.push(current);
 
-	while (!Abiertos.empty() and (checkDest(current, goals, n_destinos) < 3)) // falta actualizar current.actual_goal
+	while (!Abiertos.empty() and (checkDest(current, goals, n_destinos, Cerrados, Abiertos) < 3)) // falta actualizar current.actual_goal
 	{
-		current.actual_goal = (current.actual_goal < 3) ? current.actual_goal : 0;
-	//	cout << current.st.fila << " " << current.st.columna << endl;
 		Abiertos.pop();
 		Cerrados.insert(current.st);
-	//	cout << "nodo actual -> fila: " << current.st.fila << ", columna: " << current.st.columna << endl;
 		// se expande dicho nodo
 		// Generar descendiente de girar a la derecha
 		nodo hijoTurnR = current;
 		checkEquipment(hijoTurnR, mapaResultado[hijoTurnR.st.fila][hijoTurnR.st.columna]);
-	//	cout << "nodo derecha -> fila: " << hijoTurnR.st.fila << ", columna: " << hijoTurnR.st.columna << ". Bikini: " << hijoTurnR.bikini << ", zapatillas: " << hijoTurnR.zapatillas << endl;
+	//cout << "nodo derecha -> fila: " << hijoTurnR.st.fila << ", columna: " << hijoTurnR.st.columna << ". Bikini: " << hijoTurnR.bikini << ", zapatillas: " << hijoTurnR.zapatillas << endl;
 		hijoTurnR.st.orientacion = (hijoTurnR.st.orientacion+1)%4;
-		//cout << hijoTurnR.g << endl;
 		hijoTurnR.g += coste(hijoTurnR, mapaResultado[hijoTurnR.st.fila][hijoTurnR.st.columna], "t_right");
-		//if(hijoTurnR.g < 3000)
-		//{
-			hijoTurnR.h = DistanciaMH(hijoTurnR.st, goals[current.actual_goal]);
+		if(hijoTurnR.g < 3000)
+		{
+			hijoTurnR.h=0;
+			for(int i=0; i<n_destinos; ++i)
+				if(!hijoTurnR.objetivo_alcanzado[i])
+					hijoTurnR.h += DistanciaMH(hijoTurnR.st, goals[i]);
 			hijoTurnR.f = hijoTurnR.g + hijoTurnR.h;
 			if (Cerrados.find(hijoTurnR.st) == Cerrados.end()){
 				hijoTurnR.secuencia.push_back(actTURN_R);
 				Abiertos.push(hijoTurnR);
 			}
-	//	}
-
-	//	sleep(1);
+		}
 
 		// Generar descendiente de girar a la izquierda
 		nodo hijoTurnL = current;
@@ -573,17 +588,18 @@ bool ComportamientoJugador::pathFinding_Astar_multi(const estado &origen, const 
 	 ///cout << "nodo izquierda -> fila: " << hijoTurnL.st.fila << ", columna: " << hijoTurnL.st.columna << ". Bikini: " << hijoTurnL.bikini << ", zapatillas: " << hijoTurnL.zapatillas << endl;
 		hijoTurnL.st.orientacion = (hijoTurnL.st.orientacion+3)%4;
 		hijoTurnL.g += coste(hijoTurnL, mapaResultado[hijoTurnL.st.fila][hijoTurnL.st.columna], "t_left");
-		//if(hijoTurnL.g < 3000)
-		//{
-			hijoTurnL.h = DistanciaMH(hijoTurnL.st, goals[current.actual_goal]);
+		if(hijoTurnL.g < 3000)
+		{
+			hijoTurnL.h=0;
+			for(int i=0; i<n_destinos; ++i)
+				if(!hijoTurnL.objetivo_alcanzado[i])
+					hijoTurnL.h += DistanciaMH(hijoTurnL.st, goals[i]);
 			hijoTurnL.f = hijoTurnL.g + hijoTurnL.h;
 			if (Cerrados.find(hijoTurnL.st) == Cerrados.end()){
 				hijoTurnL.secuencia.push_back(actTURN_L);
 				Abiertos.push(hijoTurnL);
 			}
-		//}
-
-		//sleep(1);
+		}
 
 		// Generar descendiente de avanzar
 		nodo hijoForward = current;
@@ -593,7 +609,10 @@ bool ComportamientoJugador::pathFinding_Astar_multi(const estado &origen, const 
 			hijoForward.g += coste(hijoForward, mapaResultado[hijoForward.st.fila][hijoForward.st.columna], "forward");
 			if(hijoForward.g < 3000)
 			{
-				hijoForward.h = DistanciaMH(hijoForward.st, goals[current.actual_goal]);
+				hijoForward.h=0;
+				for(int i=0; i<n_destinos; ++i)
+					if(!hijoForward.objetivo_alcanzado[i])
+						hijoForward.h += DistanciaMH(hijoForward.st, goals[i]);
 				hijoForward.f = hijoForward.g + hijoForward.h;
 				if (Cerrados.find(hijoForward.st) == Cerrados.end()){
 					hijoForward.secuencia.push_back(actFORWARD);
@@ -603,21 +622,18 @@ bool ComportamientoJugador::pathFinding_Astar_multi(const estado &origen, const 
 
 		}
 
-		//sleep(1);
 
 		//Seleccionar el mejor nodo de ABIERTOS
 		if (!Abiertos.empty()){
 			current = Abiertos.top();
 			//cout << "Siguiente nodo: "<< current.f << endl;
 		}
-		cout << !Abiertos.empty() << " " << (checkDest(current, goals, n_destinos)<3) <<endl;
 	}
 
 	cout << "Terminada la busqueda\n";
-	//cout << Abiertos.empty() << endl;
-	cout << current.st.fila << " " <<  goals[current.actual_goal].fila << " "<<  current.st.columna << " " << goals[current.actual_goal].columna << endl;
-	//cout << goals[current.actual_goal].fila << " " << goals[current.actual_goal].columna << endl;
-	if (current.st.fila == goals[current.actual_goal].fila and current.st.columna == goals[current.actual_goal].columna){
+	if(Abiertos.empty()) cout << "Lista de abiertos vacia" << endl;
+	if(current.dest_reached == n_destinos)
+	{
 		cout << "Cargando el plan\n";
 		plan = current.secuencia;
 		cout << "Longitud del plan: " << plan.size() << endl;
