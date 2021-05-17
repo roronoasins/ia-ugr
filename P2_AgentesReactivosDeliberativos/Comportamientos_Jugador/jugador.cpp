@@ -98,6 +98,8 @@ bool ComportamientoJugador::pathFinding (int level, const estado &origen, const 
 			objetivo_astar = objetivos.front();
 			this->destino = objetivo_astar;
 			cout << "fila: " << objetivo_astar.fila << " col:" << objetivo_astar.columna << endl;
+			list<estado> objetivos_Astar = objetivos;
+			//return pathFinding_Astar_multi(origen, objetivos_Astar, plan);
 			return pathFinding_Astar(origen,objetivo_astar,plan);
 			break;
 		}
@@ -105,13 +107,6 @@ bool ComportamientoJugador::pathFinding (int level, const estado &origen, const 
 		{
 			cout << "Optimo en coste 3 Objetivos - A*\n";
 			list<estado> objetivos_Astar = objetivos;
-		//	list<estado>::iterator it=objetivos_Astar.begin();
-		//	for(it; it != objetivos_Astar.end(); ++it)
-		//	{
-			//	cout << (*it).fila << " " << (*it).columna << endl;
-		//		goals.push_back(*it);
-		//	}
-
 			return pathFinding_Astar_multi(origen, objetivos_Astar, plan);
 			break;
 		}
@@ -171,18 +166,16 @@ struct nodo{
 	estado st;
 	list<Action> secuencia;
 	int f, g, h;
-	bool zapatillas, bikini;
 	bool objetivo_alcanzado[3];
 	int dest_reached;
 };
 
 struct ComparaEstados{
 	bool operator()(const estado &a, const estado &n) const{
-		if ((a.fila > n.fila) or (a.fila == n.fila and a.columna > n.columna) or
-	      (a.fila == n.fila and a.columna == n.columna and a.orientacion > n.orientacion))
-			return true;
-		else
-			return false;
+		return ((a.fila > n.fila) or (a.fila == n.fila and a.columna > n.columna) or
+	      (a.fila == n.fila and a.columna == n.columna and a.orientacion > n.orientacion) or
+				(a.fila == n.fila and a.columna == n.columna and a.orientacion == n.orientacion and a.bikini < n.bikini) or
+				(a.fila == n.fila and a.columna == n.columna and a.orientacion == n.orientacion and a.bikini == n.bikini and a.zapatillas < n.zapatillas));
 	}
 };
 
@@ -349,9 +342,9 @@ int coste(const nodo& nodo, const char &terreno, const string &accion)
 	{
 		switch (terreno) {
 			case 'A':
-				return (nodo.bikini) ? 10 : 200;
+				return (nodo.st.bikini) ? 10 : 200;
 			case 'B':
-				return (nodo.zapatillas) ? 15 : 100;
+				return (nodo.st.zapatillas) ? 15 : 100;
 			case 'T':
 				return 2;
 			default:
@@ -361,9 +354,9 @@ int coste(const nodo& nodo, const char &terreno, const string &accion)
 	{
 		switch (terreno) {
 			case 'A':
-				return (nodo.bikini) ? 5 : 500;
+				return (nodo.st.bikini) ? 5 : 500;
 			case 'B':
-				return (nodo.zapatillas) ? 1 : 3;
+				return (nodo.st.zapatillas) ? 1 : 3;
 			case 'T':
 				return 2;
 			default:
@@ -381,9 +374,9 @@ int ComportamientoJugador::DistanciaMH(const estado& x, const estado& y)
 void checkEquipment(nodo& nodo, const char& celda)
 {
 	if (celda == 'K')
-	 	nodo.bikini = true;
+	 	nodo.st.bikini = true;
 	else if (celda == 'D')
-		nodo.zapatillas = true;
+		nodo.st.zapatillas = true;
 }
 
 bool ComportamientoJugador::pathFinding_Astar(const estado &origen, const estado &destino, list<Action> &plan)
@@ -395,30 +388,31 @@ bool ComportamientoJugador::pathFinding_Astar(const estado &origen, const estado
 	priority_queue<nodo, vector<nodo>, open_comparison> Abiertos;		// Lista de Abiertos
 	nodo mejor_padre;
 	vector<nodo> hijos;
-
 	nodo current;
+
 	current.st = origen;
+	current.st.bikini = 0;
+	current.st.zapatillas = 0;
 	checkEquipment(current, mapaResultado[current.st.fila][current.st.columna]);
 	current.g = coste(current, mapaResultado[current.st.fila][current.st.columna], "idle");
-	//cout << "nodo actual -> fila: " << current.st.fila << ", columna: " << current.st.columna << ". Bikini: " << current.bikini << ", zapatillas: " << current.zapatillas << endl;
 	current.h = DistanciaMH(current.st, destino);
 	current.f = current.g + current.h;
 	current.secuencia.empty();
 
 	Abiertos.push(current);
 
-	while (!Abiertos.empty() and (current.st.fila != destino.fila or current.st.columna != destino.columna))
+	while (!Abiertos.empty() and (current.st.fila!=destino.fila or current.st.columna != destino.columna)) // falta actualizar current.actual_goal
 	{
 		Abiertos.pop();
 		Cerrados.insert(current.st);
-		//cout << "nodo actual -> fila: " << current.st.fila << ", columna: " << current.st.columna << endl;
+
 		// se expande dicho nodo
+
 		// Generar descendiente de girar a la derecha
 		nodo hijoTurnR = current;
 		checkEquipment(hijoTurnR, mapaResultado[hijoTurnR.st.fila][hijoTurnR.st.columna]);
-		//cout << "nodo derecha -> fila: " << hijoTurnR.st.fila << ", columna: " << hijoTurnR.st.columna << ". Bikini: " << hijoTurnR.bikini << ", zapatillas: " << hijoTurnR.zapatillas << endl;
+	//cout << "nodo derecha -> fila: " << hijoTurnR.st.fila << ", columna: " << hijoTurnR.st.columna << ". Bikini: " << hijoTurnR.bikini << ", zapatillas: " << hijoTurnR.zapatillas << endl;
 		hijoTurnR.st.orientacion = (hijoTurnR.st.orientacion+1)%4;
-		//cout << hijoTurnR.g << endl;
 		hijoTurnR.g += coste(hijoTurnR, mapaResultado[hijoTurnR.st.fila][hijoTurnR.st.columna], "t_right");
 		if(hijoTurnR.g < 3000)
 		{
@@ -430,12 +424,10 @@ bool ComportamientoJugador::pathFinding_Astar(const estado &origen, const estado
 			}
 		}
 
-	//	sleep(1);
-
 		// Generar descendiente de girar a la izquierda
 		nodo hijoTurnL = current;
 		checkEquipment(hijoTurnL, mapaResultado[hijoTurnL.st.fila][hijoTurnL.st.columna]);
-		//cout << "nodo izquierda -> fila: " << hijoTurnL.st.fila << ", columna: " << hijoTurnL.st.columna << ". Bikini: " << hijoTurnL.bikini << ", zapatillas: " << hijoTurnL.zapatillas << endl;
+	 ///cout << "nodo izquierda -> fila: " << hijoTurnL.st.fila << ", columna: " << hijoTurnL.st.columna << ". Bikini: " << hijoTurnL.bikini << ", zapatillas: " << hijoTurnL.zapatillas << endl;
 		hijoTurnL.st.orientacion = (hijoTurnL.st.orientacion+3)%4;
 		hijoTurnL.g += coste(hijoTurnL, mapaResultado[hijoTurnL.st.fila][hijoTurnL.st.columna], "t_left");
 		if(hijoTurnL.g < 3000)
@@ -447,8 +439,6 @@ bool ComportamientoJugador::pathFinding_Astar(const estado &origen, const estado
 				Abiertos.push(hijoTurnL);
 			}
 		}
-
-		//sleep(1);
 
 		// Generar descendiente de avanzar
 		nodo hijoForward = current;
@@ -468,20 +458,17 @@ bool ComportamientoJugador::pathFinding_Astar(const estado &origen, const estado
 
 		}
 
-		//sleep(1);
-
 		//Seleccionar el mejor nodo de ABIERTOS
 		if (!Abiertos.empty()){
 			current = Abiertos.top();
 			//cout << "Siguiente nodo: "<< current.f << endl;
 		}
-
-
 	}
 
 	cout << "Terminada la busqueda\n";
-
-	if (current.st.fila == destino.fila and current.st.columna == destino.columna){
+	if(Abiertos.empty()) cout << "Lista de abiertos vacia" << endl;
+	if(current.st.fila==destino.fila and current.st.columna == destino.columna)
+	{
 		cout << "Cargando el plan\n";
 		plan = current.secuencia;
 		cout << "Longitud del plan: " << plan.size() << endl;
@@ -496,7 +483,6 @@ bool ComportamientoJugador::pathFinding_Astar(const estado &origen, const estado
 
 
 	return false;
-
 }
 
 void resetLists(nodo &current, set<estado,ComparaEstados> &cerrados, priority_queue<nodo, vector<nodo>, open_comparison> &abiertos)
@@ -543,8 +529,8 @@ bool ComportamientoJugador::pathFinding_Astar_multi(const estado &origen, const 
 	int actual_dest=0;
 	this->destino = goals[actual_dest];
 	current.st = origen;
-	current.bikini = 0;
-	current.zapatillas = 0;
+	current.st.bikini = 0;
+	current.st.zapatillas = 0;
 	checkEquipment(current, mapaResultado[current.st.fila][current.st.columna]);
 	current.g = coste(current, mapaResultado[current.st.fila][current.st.columna], "idle");
 	for(int i=0; i<n_destinos; ++i)
@@ -558,7 +544,7 @@ bool ComportamientoJugador::pathFinding_Astar_multi(const estado &origen, const 
 
 	Abiertos.push(current);
 
-	while (!Abiertos.empty() and (checkDest(current, goals, n_destinos, Cerrados, Abiertos) < 3)) // falta actualizar current.actual_goal
+	while (!Abiertos.empty() and (checkDest(current, goals, n_destinos, Cerrados, Abiertos) < n_destinos)) // falta actualizar current.actual_goal
 	{
 		Abiertos.pop();
 		Cerrados.insert(current.st);
