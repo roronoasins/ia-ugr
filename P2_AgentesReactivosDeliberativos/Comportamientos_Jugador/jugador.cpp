@@ -131,7 +131,8 @@ Action ComportamientoJugador::think(Sensores sensores) {
 		goals.push_back(aux);
 	}
 
-	if(last_action != actIDLE && state != nivel4_state::start) updateMapa(mapaResultado, sensores);
+	if(sensores.nivel == 4)
+		if(last_action != actIDLE && state != nivel4_state::start) updateMapa(mapaResultado, sensores);
 
 	if(!hay_plan)
 	{
@@ -169,7 +170,8 @@ Action ComportamientoJugador::think(Sensores sensores) {
 
 	}
 
-	if (hay_plan && (sensores.destino[0] != destino.fila or sensores.destino[1] != destino.columna) && (sensores.nivel == 0 || sensores.nivel == 1  || sensores.nivel == 2))
+	if (hay_plan && (sensores.destino[0] != objetivos.front().fila or sensores.destino[1] != objetivos.front().columna)
+			&& (sensores.nivel == 0 || sensores.nivel == 1  || sensores.nivel == 2))
 	{
 		cout << "El destino ha cambiado\n";
 		hay_plan = false;
@@ -194,7 +196,7 @@ Action ComportamientoJugador::think(Sensores sensores) {
 				(mapaResultado[actual.fila-1][actual.columna] == 'B' && actual.orientacion == 2) ||
 				(mapaResultado[actual.fila][actual.columna-1] == 'B' && actual.orientacion == 3) )
 				&& sensores.nivel == 4 && sig_accion == actFORWARD)
-		{
+		//{
 			if(try_again)
 				try_again = false;
 			else
@@ -203,7 +205,7 @@ Action ComportamientoJugador::think(Sensores sensores) {
 					hay_plan = false;
 					//sleep(2);
 				}
-		}
+		//}
 		if(sensores.colision && sensores.nivel == 4 && sig_accion == actFORWARD)
 		{
 			if(try_again)
@@ -217,11 +219,12 @@ Action ComportamientoJugador::think(Sensores sensores) {
 		}
 	//}
 
-	if(state != nivel4_state::done && destinoAlcanzado())
+	if(sensores.nivel == 4 && state != nivel4_state::done && destinoAlcanzado())
 	{
 		sig_accion = actIDLE;
 		state = nivel4_state::done;
 	}
+	
 	if(state == nivel4_state::done){cout << "Destino alcanzado" << endl;return actIDLE;}
 	last_action = sig_accion;
 	last_block =	actual;
@@ -519,9 +522,17 @@ int ComportamientoJugador::DistanciaMH(const estado& x, const estado& y)
 void checkEquipment(nodo& nodo, const char& celda)
 {
 	if (celda == 'K')
-	 	nodo.st.bikini = true;
+	{
+		nodo.st.bikini = true;
+		nodo.st.zapatillas = false;
+	}
+
 	else if (celda == 'D')
+	{
 		nodo.st.zapatillas = true;
+		nodo.st.bikini = false;
+	}
+
 }
 
 Action ComportamientoJugador::playerApproach()
