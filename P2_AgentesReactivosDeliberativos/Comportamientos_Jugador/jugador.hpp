@@ -12,16 +12,29 @@ struct estado {
   int orientacion;
   bool bikini;
   bool zapatillas;
+  bool operator==(const estado& e)
+  {
+    return (e.fila == fila && e.columna == columna);
+  }
 };
+
+enum class nivel4_state {start, approach, plannin, blockin, done};
 
 class ComportamientoJugador : public Comportamiento {
   public:
     ComportamientoJugador(unsigned int size) : Comportamiento(size) {
-      // Inicializar Variables de Estado
       hay_plan = false;
+      hay_plan = goal_reached = goal_spotted = false;
+      n_swept = 0;
+      state = nivel4_state::start;
+      last_action = actIDLE;
+      current_cost = 0;
+      same_block = 0;
+      try_again = false;
     }
     ComportamientoJugador(std::vector< std::vector< unsigned char> > mapaR) : Comportamiento(mapaR) {
-      // Inicializar Variables de Estado
+      hay_plan = false;
+      state = nivel4_state::plannin;
     }
     ComportamientoJugador(const ComportamientoJugador & comport) : Comportamiento(comport){}
     ~ComportamientoJugador(){}
@@ -44,6 +57,17 @@ class ComportamientoJugador : public Comportamiento {
     int n_destinos;
     //vector<pair<int,int>> goals;
     vector<estado> goals;
+    bool goal_reached;
+    bool goal_spotted;
+    nivel4_state state;
+    int n_swept;
+    Action last_action;
+    int current_cost;
+    int n_destinos_a_encontrar;
+    int same_block;
+    estado last_block;
+    estado destino_encontrado;
+    bool try_again;
 
     // Métodos privados de la clase
     bool pathFinding(int level, const estado &origen, const list<estado> &destino, list<Action> &plan);
@@ -54,6 +78,10 @@ class ComportamientoJugador : public Comportamiento {
 
     int DistanciaMH(const estado& x, const estado& y);
     int getCosteMovimiento(estado &origen, estado &sig);
+    void updateMapa(vector<vector<unsigned char>> &mapa, Sensores sensores);
+    Action swept(Sensores sensores);
+    Action playerApproach();
+    bool destinoAlcanzado();
 
     void PintaPlan(list<Action> plan);
     bool HayObstaculoDelante(estado &st);

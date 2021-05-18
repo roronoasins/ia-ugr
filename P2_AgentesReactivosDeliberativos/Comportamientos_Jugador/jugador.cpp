@@ -8,22 +8,113 @@
 #include <queue>
 #include <unistd.h>
 
+struct nodo{
+	estado st;
+	list<Action> secuencia;
+	int f, g, h;
+	bool objetivo_alcanzado[3];
+	int dest_reached;
+};
+
+struct ComparaEstados{
+	bool operator()(const estado &a, const estado &n) const{
+		return ((a.fila > n.fila) or (a.fila == n.fila and a.columna > n.columna) or
+	      (a.fila == n.fila and a.columna == n.columna and a.orientacion > n.orientacion) or
+				(a.fila == n.fila and a.columna == n.columna and a.orientacion == n.orientacion and a.bikini < n.bikini) or
+				(a.fila == n.fila and a.columna == n.columna and a.orientacion == n.orientacion and a.bikini == n.bikini and a.zapatillas < n.zapatillas));
+	}
+};
+
+void ComportamientoJugador::updateMapa(vector<vector<unsigned char>> &mapa, Sensores sensores)
+{
+	int row = actual.fila, col = actual.columna;
+	int local_row, local_col;
+	u_char *pov = &sensores.terreno[0];
+	mapaResultado[row][col] = pov[0];
+
+	if (actual.orientacion == 0){
+		for(int i=0; i<3; ++i)
+			for(int j=0; j <3+2*i; ++j)
+			{
+				local_row = row-i-1;
+				local_col = col-i-1+j;
+				for(int k=0; k < n_destinos; ++k)
+					if(local_row == goals[k].fila && local_col == goals[k].columna)
+						goal_spotted = true;
+				mapa[local_row][local_col] = pov[(2+i)*i+j+1];
+			}
+
+
+	}
+	else if (actual.orientacion == 1){
+		for(int i=0; i<3; ++i)
+			for(int j=0; j <3+2*i; ++j)
+			{
+				local_row = row-i-1+j;
+				local_col = col+i+1;
+				for(int k=0; k < n_destinos; ++k)
+					if(local_row == goals[k].fila && local_col == goals[k].columna)
+						goal_spotted = true;
+				mapa[local_row][local_col] = pov[(2+i)*i+j+1];
+			}
+	}
+	else if (actual.orientacion == 2){
+		for(int i=0; i<3; ++i)
+			for(int j=0; j <3+2*i; ++j)
+			{
+				local_row = row+i+1;
+				local_col = col+i+1-j;
+				for(int k=0; k < n_destinos; ++k)
+					if(local_row == goals[k].fila && local_col == goals[k].columna)
+						goal_spotted = true;
+				mapa[local_row][local_col] = pov[(2+i)*i+j+1];
+			}
+	}
+	else if (actual.orientacion == 3){
+		for(int i=0; i<3; ++i)
+			for(int j=0; j <3+2*i; ++j)
+			{
+				local_row = row+i+1-j;
+				local_col = col-i-1;
+				for(int k=0; k < n_destinos; ++k)
+					if(local_row == goals[k].fila && local_col == goals[k].columna)
+						goal_spotted = true;
+				mapa[local_row][local_col] = pov[(2+i)*i+j+1];
+			}
+	}
+}
+
+Action ComportamientoJugador::swept(Sensores sensores)
+{
+	updateMapa(mapaResultado, sensores);
+	actual.orientacion = (actual.orientacion+1)%4;
+	++n_swept;
+	return actTURN_R;
+}
+
+bool ComportamientoJugador::destinoAlcanzado()
+{
+	bool dest=false;
+	for(int i=0; i<n_destinos; ++i)
+		if(actual.fila == goals[i].fila && actual.columna == goals[i].columna)
+		{
+			dest = true;
+			break;
+		}
+		return dest;
+}
+
 // Este es el método principal que se piden en la practica.
 // Tiene como entrada la información de los sensores y devuelve la acción a realizar.
 // Para ver los distintos sensores mirar fichero "comportamiento.hpp"
 Action ComportamientoJugador::think(Sensores sensores) {
 	Action sig_accion = actIDLE;
-
 	actual.fila        = sensores.posF;
 	actual.columna     = sensores.posC;
 	actual.orientacion = sensores.sentido;
 
 	n_destinos = sensores.num_destinos;
-	//for(int i=0; i < n_destinos; ++i)
-	//{
-		//goals.push_back(pair<int,int>(sensores.destino[0],sensores.destino[0]));
-//	}
-
+	n_destinos_a_encontrar = (sensores.nivel == 4) ? 1 : n_destinos;
 	cout << "Fila: " << actual.fila << endl;
 	cout << "Col : " << actual.columna << endl;
 	cout << "Ori : " << actual.orientacion << endl;
@@ -39,32 +130,101 @@ Action ComportamientoJugador::think(Sensores sensores) {
 		objetivos.push_back(aux);
 		goals.push_back(aux);
 	}
-//	if(!hay_plan)
-//		if(sensores.nivel==3)
-	//		sortGoals(sensores);
+
+	if(last_action != actIDLE && state != nivel4_state::start) updateMapa(mapaResultado, sensores);
 
 	if(!hay_plan)
 	{
-		hay_plan = pathFinding (sensores.nivel, actual, objetivos, plan);
-	}
+		if(state == nivel4_state::start)
+		{
+			cout << "start" << endl;
+			sig_accion = swept(sensores);
+			if(n_swept == 4) state = nivel4_state::plannin;
+		}else if(state == nivel4_state::approach)
+		{cout << "approach" << endl;
+			sig_accion = playerApproach();
+		}else if(state == nivel4_state::plannin)
+		{cout << "plannin" << endl;
+			hay_plan = pathFinding (sensores.nivel, actual, objetivos, plan);
+		}else if(state == nivel4_state::blockin)
+		{cout << "blockin" << endl;
+			//state = (goal_spotted) ? nivel4_state::plannin : nivel4_state::approach;
+			state = nivel4_state::plannin;
+			if(actual == last_block)
+				++same_block;
+			if(same_block > 2)
+			{
+				for(int i=0; i < n_destinos; ++i)
+				{
+					if(goals[i].fila == destino_encontrado.fila && goals[i].columna == destino_encontrado.columna)
+					{
+						goals.erase(goals.begin()+i);
+						--n_destinos;
+					}
+				}
+				try_again = true;
+				same_block = 0;
+			}else try_again = false;
+		}
 
+	}
 
 	if (hay_plan && (sensores.destino[0] != destino.fila or sensores.destino[1] != destino.columna) && (sensores.nivel == 0 || sensores.nivel == 1  || sensores.nivel == 2))
 	{
 		cout << "El destino ha cambiado\n";
 		hay_plan = false;
-		//updateGoals(sensores);
 	}
 
 	if(hay_plan && plan.size() > 0)
 	{
 		sig_accion = plan.front();
 		plan.erase(plan.begin());
-
 	}else{
 		cout << "No se pudo encontrar un plan" << endl;
 	}
 
+//	if(mapaResultado[actual.fila][actual.columna] != 'A' || mapaResultado[actual.fila][actual.columna] != 'B')
+	//{
+		if((mapaResultado[actual.fila+1][actual.columna] == 'A' && actual.orientacion == 0 ||
+				(mapaResultado[actual.fila][actual.columna+1] == 'A' && actual.orientacion == 1) ||
+				(mapaResultado[actual.fila-1][actual.columna] == 'A' && actual.orientacion == 2) ||
+				(mapaResultado[actual.fila][actual.columna-1] == 'A' && actual.orientacion == 3) ||
+				(mapaResultado[actual.fila+1][actual.columna] == 'B' && actual.orientacion == 0) ||
+				(mapaResultado[actual.fila][actual.columna+1] == 'B' && actual.orientacion == 1) ||
+				(mapaResultado[actual.fila-1][actual.columna] == 'B' && actual.orientacion == 2) ||
+				(mapaResultado[actual.fila][actual.columna-1] == 'B' && actual.orientacion == 3) )
+				&& sensores.nivel == 4 && sig_accion == actFORWARD)
+		{
+			if(try_again)
+				try_again = false;
+			else
+				{
+					state = nivel4_state::plannin;
+					hay_plan = false;
+					//sleep(2);
+				}
+		}
+		if(sensores.colision && sensores.nivel == 4 && sig_accion == actFORWARD)
+		{
+			if(try_again)
+				try_again = false;
+			else
+				{
+					state = nivel4_state::blockin;
+					hay_plan = false;
+					//sleep(2);
+				}
+		}
+	//}
+
+	if(state != nivel4_state::done && destinoAlcanzado())
+	{
+		sig_accion = actIDLE;
+		state = nivel4_state::done;
+	}
+	if(state == nivel4_state::done){cout << "Destino alcanzado" << endl;return actIDLE;}
+	last_action = sig_accion;
+	last_block =	actual;
   return sig_accion;
 }
 
@@ -112,8 +272,10 @@ bool ComportamientoJugador::pathFinding (int level, const estado &origen, const 
 		}
 		case 4:
 		{
-			cout << "reto" << endl;
-							break;
+			cout << "Ejecutando la búsqueda para el nivel 4" << endl;
+			list<estado> objetivos_Astar = objetivos;
+			return pathFinding_Astar_multi(origen, objetivos_Astar, plan);
+			break;
 		}
 	}
 	return false;
@@ -161,23 +323,6 @@ bool ComportamientoJugador::HayObstaculoDelante(estado &st){
 	  return true;
 	}
 }
-
-struct nodo{
-	estado st;
-	list<Action> secuencia;
-	int f, g, h;
-	bool objetivo_alcanzado[3];
-	int dest_reached;
-};
-
-struct ComparaEstados{
-	bool operator()(const estado &a, const estado &n) const{
-		return ((a.fila > n.fila) or (a.fila == n.fila and a.columna > n.columna) or
-	      (a.fila == n.fila and a.columna == n.columna and a.orientacion > n.orientacion) or
-				(a.fila == n.fila and a.columna == n.columna and a.orientacion == n.orientacion and a.bikini < n.bikini) or
-				(a.fila == n.fila and a.columna == n.columna and a.orientacion == n.orientacion and a.bikini == n.bikini and a.zapatillas < n.zapatillas));
-	}
-};
 
 // Implementación de la busqueda en profundidad.
 // Entran los puntos origen y destino y devuelve la
@@ -379,6 +524,65 @@ void checkEquipment(nodo& nodo, const char& celda)
 		nodo.st.zapatillas = true;
 }
 
+Action ComportamientoJugador::playerApproach()
+{
+	nodo best;best.f=999999;
+	Action best_action;
+
+	nodo neighTR;
+	neighTR.st = actual;
+	checkEquipment(neighTR, mapaResultado[neighTR.st.fila][neighTR.st.columna]);
+	neighTR.st.orientacion = (neighTR.st.orientacion+1)%4;
+	neighTR.g = coste(neighTR, mapaResultado[neighTR.st.fila][neighTR.st.columna], "t_right");
+	if(neighTR.g < 3000)
+	{
+		neighTR.h = 0;
+		for(int i=0; i<n_destinos; ++i)
+			if(!neighTR.objetivo_alcanzado[i])
+				neighTR.h += DistanciaMH(neighTR.st, goals[i]);
+		neighTR.f = neighTR.g + neighTR.h + current_cost;
+		cout << neighTR.f << endl;
+		if(neighTR.f <= best.f) {best = neighTR;best_action=actTURN_R;}
+	}
+
+		nodo neighTL;
+		neighTL.st = actual;
+		checkEquipment(neighTL, mapaResultado[neighTL.st.fila][neighTL.st.columna]);
+		neighTL.st.orientacion = (neighTL.st.orientacion+3)%4;
+		neighTL.g = coste(neighTL, mapaResultado[neighTL.st.fila][neighTL.st.columna], "t_left");
+		if(neighTL.g < 3000)
+		{
+			neighTL.h = 0;
+			for(int i=0; i<n_destinos; ++i)
+				if(!neighTL.objetivo_alcanzado[i])
+					neighTL.h += DistanciaMH(neighTL.st, goals[i]);
+			neighTL.f = neighTL.g + neighTL.h + current_cost;
+			cout << neighTL.f << endl;
+			if(neighTL.f <= best.f) {best = neighTL;best_action=actTURN_L;}
+		}
+
+			nodo neighFW;
+			neighFW.st = actual;
+			if (!HayObstaculoDelante(neighFW.st))
+			{
+				checkEquipment(neighFW, mapaResultado[neighFW.st.fila][neighFW.st.columna]);
+				neighFW.g = coste(neighFW, mapaResultado[neighFW.st.fila][neighFW.st.columna], "forward");
+				if(neighFW.g < 3000)
+				{
+					neighFW.h = 0;
+					for(int i=0; i<n_destinos; ++i)
+						if(!neighFW.objetivo_alcanzado[i])
+							neighFW.h += DistanciaMH(neighFW.st, goals[i]);
+					neighFW.f = neighFW.g + neighFW.h + current_cost;
+					cout << neighFW.f << endl;
+					if(neighFW.f <= best.f) {best = neighFW;best_action=actFORWARD;}
+				}
+			}
+
+		current_cost = best.f;
+		return best_action;
+}
+
 bool ComportamientoJugador::pathFinding_Astar(const estado &origen, const estado &destino, list<Action> &plan)
 {
 	//Borro la lista
@@ -386,8 +590,6 @@ bool ComportamientoJugador::pathFinding_Astar(const estado &origen, const estado
 	plan.clear();
 	set<estado,ComparaEstados> Cerrados; 														// Lista de Cerrados
 	priority_queue<nodo, vector<nodo>, open_comparison> Abiertos;		// Lista de Abiertos
-	nodo mejor_padre;
-	vector<nodo> hijos;
 	nodo current;
 
 	current.st = origen;
@@ -497,7 +699,7 @@ int checkDest(nodo& current, const vector<estado> goals, int n_dest, set<estado,
 {
 	if(current.dest_reached < n_dest)
 	{
-		for(int i=0; i<n_dest; ++i)
+		for(int i=0; i<goals.size(); ++i)
 		{
 			if(current.objetivo_alcanzado[i] == false)
 				if(current.st.fila == goals[i].fila and current.st.columna == goals[i].columna)
@@ -544,7 +746,7 @@ bool ComportamientoJugador::pathFinding_Astar_multi(const estado &origen, const 
 
 	Abiertos.push(current);
 
-	while (!Abiertos.empty() and (checkDest(current, goals, n_destinos, Cerrados, Abiertos) < n_destinos)) // falta actualizar current.actual_goal
+	while (!Abiertos.empty() and (checkDest(current, goals, n_destinos, Cerrados, Abiertos) < n_destinos_a_encontrar)) // falta actualizar current.actual_goal
 	{
 		Abiertos.pop();
 		Cerrados.insert(current.st);
@@ -618,8 +820,9 @@ bool ComportamientoJugador::pathFinding_Astar_multi(const estado &origen, const 
 
 	cout << "Terminada la busqueda\n";
 	if(Abiertos.empty()) cout << "Lista de abiertos vacia" << endl;
-	if(current.dest_reached == n_destinos)
+	if(current.dest_reached == n_destinos_a_encontrar)
 	{
+		destino_encontrado = current.st;
 		cout << "Cargando el plan\n";
 		plan = current.secuencia;
 		cout << "Longitud del plan: " << plan.size() << endl;
