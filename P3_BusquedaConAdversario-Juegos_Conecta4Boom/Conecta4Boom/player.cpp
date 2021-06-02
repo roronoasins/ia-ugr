@@ -86,7 +86,7 @@ Environment::ActionType Player::Think(){
     const int PROFUNDIDAD_MINIMAX = 6;  // Umbral maximo de profundidad para el metodo MiniMax
     const int PROFUNDIDAD_ALFABETA = 8; // Umbral maximo de profundidad para la poda Alfa_Beta
 
-    Environment::ActionType accion; // acción que se va a devolver
+    Environment::ActionType accion; // acciï¿½n que se va a devolver
     bool aplicables[8]; // Vector bool usado para obtener las acciones que son aplicables en el estado actual. La interpretacion es
                         // aplicables[0]==true si PUT1 es aplicable
                         // aplicables[1]==true si PUT2 es aplicable
@@ -119,7 +119,7 @@ Environment::ActionType Player::Think(){
 
 
     //--------------------- COMENTAR Desde aqui
-    cout << "\n\t";
+  /*  cout << "\n\t";
     int n_opciones=0;
     JuegoAleatorio(aplicables, opciones, n_opciones);
 
@@ -140,7 +140,7 @@ Environment::ActionType Player::Think(){
             cout << " -> " << actual_.ActionStr( static_cast< Environment::ActionType > (opciones[aleatorio])  ) << endl;
             accion = static_cast< Environment::ActionType > (opciones[aleatorio]);
          }
-
+*/
     //--------------------- COMENTAR Hasta aqui
 
 
@@ -149,9 +149,52 @@ Environment::ActionType Player::Think(){
 
     // Opcion: Poda AlfaBeta
     // NOTA: La parametrizacion es solo orientativa
-    // valor = Poda_AlfaBeta(actual_, jugador_, 0, PROFUNDIDAD_ALFABETA, accion, alpha, beta);
-    //cout << "Valor MiniMax: " << valor << "  Accion: " << actual_.ActionStr(accion) << endl;
+    valor = AlphaBeta_Pruning(actual_, jugador_, PROFUNDIDAD_ALFABETA, accion, alpha, beta, true);
+    cout << "Valor MiniMax: " << valor << "  Accion: " << actual_.ActionStr(accion) << endl;
 
     return accion;
 }
 
+double Player::AlphaBeta_Pruning(const Environment& env, int player, int depth, Environment::ActionType& action, double alpha, double beta, bool maximizingPlayer)
+{
+  double value;
+  if(depth == 0 || env.JuegoTerminado())
+  {
+    return ValoracionTest(env, player);
+  }
+
+  if(maximizingPlayer)
+  {
+    value = menosinf;
+    bool options[8];
+    int next_move=-1;
+    int n_options = env.possible_actions(options);
+    for(int i=0; i<n_options; ++i)
+    {
+      Environment child = env.GenerateNextMove(next_move);
+      cout << "nex move: " << next_move << "  Accion: " << child.ActionStr(action) << endl;
+      action = static_cast<Environment::ActionType> (next_move);
+      value = AlphaBeta_Pruning(child, player, depth-1, action, alpha, beta, false);
+      alpha = max(alpha, value);
+      if(alpha >= beta)
+        break;  // beta cutoff
+    }
+  }else
+  {
+    value = masinf;
+    bool options[8];
+    int next_move=-1;
+    int n_options = env.possible_actions(options);
+    for(int i=0; i<n_options; ++i)
+    {
+      Environment child = env.GenerateNextMove(next_move);
+      action = static_cast<Environment::ActionType> (next_move);
+      cout << "nex move: " << next_move << "  Accion: " << child.ActionStr(action) << endl;
+      value = AlphaBeta_Pruning(child, player, depth-1, action, alpha, beta, true);
+      beta = min(beta, value);
+      if(beta <= alpha)
+        break;  // alpha cutoff
+    }
+  }
+  return value;
+}
