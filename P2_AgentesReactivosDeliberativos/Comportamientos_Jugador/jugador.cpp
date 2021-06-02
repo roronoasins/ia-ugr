@@ -12,7 +12,7 @@ struct nodo{
 	estado st;
 	list<Action> secuencia;
 	int f, g, h;
-	bool objetivo_alcanzado[3];
+	bool objetivo_alcanzado[3]; // pasar esto a estado
 	int dest_reached;
 };
 
@@ -22,7 +22,7 @@ struct ComparaEstados{
 	      (a.fila == n.fila and a.columna == n.columna and a.orientacion > n.orientacion) or
 				(a.fila == n.fila and a.columna == n.columna and a.orientacion == n.orientacion and a.bikini < n.bikini) or
 				(a.fila == n.fila and a.columna == n.columna and a.orientacion == n.orientacion and a.bikini == n.bikini and a.zapatillas < n.zapatillas));
-	}
+	} // añadir objetivo_alcanzado
 };
 
 void ComportamientoJugador::updateMapa(vector<vector<unsigned char>> &mapa, Sensores sensores)
@@ -224,7 +224,7 @@ Action ComportamientoJugador::think(Sensores sensores) {
 		sig_accion = actIDLE;
 		state = nivel4_state::done;
 	}
-	
+
 	if(state == nivel4_state::done){cout << "Destino alcanzado" << endl;return actIDLE;}
 	last_action = sig_accion;
 	last_block =	actual;
