@@ -8,7 +8,9 @@ class Player{
       Player(int jug);
       Environment::ActionType Think();
       void Perceive(const Environment &env);
-      double AlphaBeta_Pruning(const Environment &env, int player, int depth, Environment::ActionType& action, double alpha, double beta, bool maximizingPlayer);
+      double maxValue(const Environment& env, int player, int depth, double alpha, double beta, Environment::ActionType& action, int maximizingPlayer, int next_move);
+      double minValue(const Environment& env, int player, int depth, double alpha, double beta, Environment::ActionType& action, int maximizingPlayer, int next_move);
+      double AlphaBeta_Pruning(const Environment &env, int player, int depth, Environment::ActionType& action, double alpha, double beta, int maximizingPlayer);
     private:
       int jugador_;
       Environment actual_;

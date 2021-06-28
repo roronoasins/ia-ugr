@@ -8,6 +8,7 @@
 using namespace std;
 
 const double masinf=9999999999.0, menosinf=-9999999999.0;
+const int n_rows=7, n_cols=7;
 
 
 // Constructor
@@ -55,13 +56,142 @@ double ValoracionTest(const Environment &estado, int jugador){
 
 
 
-// Funcion heuristica (ESTA ES LA QUE TENEIS QUE MODIFICAR)
-double Valoracion(const Environment &estado, int jugador){
+int getNearby(int n_squares, int player, const Environment &state)
+{
+  int nearby_v = 1, nearby_h = 1, nearby_dn=1, nearby_dp=1;
+  int n_v=0, n_h=0, n_d=0;
+  for(int i=0; i<n_rows; ++i)
+    for(int j=0; j<n_cols; ++j)
+    {
+      if(state.See_Casilla(i,j) == player) // 0 vacia, 1 jugador1, 2 jugador2.
+      {
+        int i_index=i-1, j_index=j;
+      //  bool continue=true;
+        while((i_index>=0)) // vertical, on       metodo nuevo: recorre la columna hasta que encuentra una casilla con player, si es player cuenta a ver cuantas seguidas hay de ese player. devuelve el numero de fichas seguidas y dentro del for se hace ++ al numero de filas que ha devuelto
+        {
+          if(state.See_Casilla(i_index,j_index) == player)
+          {
+            if(nearby_v!=n_squares)
+            {
+              ++nearby_v;
+            }else
+            {
+              ++n_v;
+              nearby_v=0;
+            }
+          }
+          else
+            break;
+          --i_index;
+        }
+        nearby_v=0;
+
+        i_index = i;
+        j_index = j-1;
+        while((j_index>=0)) // horizontal, left
+        {
+          if(state.See_Casilla(i_index,j_index) == player)
+          {
+            if(nearby_h!=n_squares)
+            {
+              ++nearby_h;
+            }else
+            {
+              ++n_h;
+              nearby_h=0;
+            }
+          }
+          else
+            break;
+          --j_index;
+        }
+
+
+
+        i_index = i-1;
+        j_index = j-1;
+        while((j_index>=0 && i_index>=0)) // diagonal, negative slope(leftside)
+        {
+          if(state.See_Casilla(i_index,j_index) == player)
+          {
+            if(nearby_dn!=n_squares)
+            {
+              ++nearby_dn;
+            }else
+            {
+              ++n_d;
+              nearby_dn=0;
+            }
+          }
+          else
+            break;
+          --i_index;--j_index;
+        }
+
+
+        i_index = i+1;
+        j_index = j-1;
+        while((j_index>=0 && i_index<n_rows)) // diagonal, positive slope(leftside)
+        {
+          if(state.See_Casilla(i_index,j_index) == player)
+          {
+            if(nearby_dp!=n_squares)
+            {
+              ++nearby_dp;
+            }else
+            {
+              ++n_d;
+              nearby_dp=0;
+            }
+          }
+          else
+            break;
+          ++i_index;--j_index;
+        }
+
+      }
+    }
+  return n_h+n_v+n_d;
 }
 
 
+/* Función heuristica
+ Características: número de filas, columnas y diagonales adyacentes(2, 3 o 4)
+ Estados finales: tableros completos o con línea ganadora
+ Estados ganadores para un jugador: estados finales en los que no le toca poner
+ Primer enfoque: usar combinación lineal usando pesos ponderados que determinan la importancia de cada característica
+*/
+double heuristic(int player, const Environment &state){
+  int opponent = (player == 1) ? 2 : 1;
+  int features[3], opponent_features[3];
+  for(int i=0; i<3; ++i)
+  {
+    features[2-i] = getNearby(4-i, player, state);
+    opponent_features[2-i] = getNearby(4-i, opponent, state);
+  }
 
+  int player_h   = features[0]*10+features[1]*100+features[2]*10000,
+      opponent_h = opponent_features[0]*10+opponent_features[1]*100+opponent_features[2]*1000;
+  return (player_h - opponent_h);
+}
 
+double Valoracion(const Environment &estado, int jugador){
+  int ganador = estado.RevisarTablero();
+  //cout << "valoracion para el jugador " <<jugador;
+  if (ganador==jugador)
+    return 9999999999.0; // Gana el jugador que pide la valoracion
+  else if (ganador!=0)
+    return -9999999999.0; // Pierde el jugador que pide la valoracion
+  else if (estado.Get_Casillas_Libres()==0)
+    return 0;  // Hay un empate global y se ha rellenado completamente el tablero
+  else
+  {
+    double h = heuristic(jugador,estado);
+    //cout << " :" << h << endl;
+    return h;
+  }
+
+}
 
 // Esta funcion no se puede usar en la version entregable
 // Aparece aqui solo para ILUSTRAR el comportamiento del juego
@@ -75,11 +205,6 @@ void JuegoAleatorio(bool aplicables[], int opciones[], int &j){
         }
     }
 }
-
-
-
-
-
 
 // Invoca el siguiente movimiento del jugador
 Environment::ActionType Player::Think(){
@@ -117,84 +242,107 @@ Environment::ActionType Player::Think(){
          cout << " " << actual_.ActionStr( static_cast< Environment::ActionType > (t)  );
     cout << endl;
 
-
-    //--------------------- COMENTAR Desde aqui
-  /*  cout << "\n\t";
-    int n_opciones=0;
-    JuegoAleatorio(aplicables, opciones, n_opciones);
-
-    if (n_act==0){
-      (jugador_==1) ? cout << "Verde: " : cout << "Azul: ";
-      cout << " No puede realizar ninguna accion!!!\n";
-      //accion = Environment::actIDLE;
-    }
-    else if (n_act==1){
-           (jugador_==1) ? cout << "Verde: " : cout << "Azul: ";
-            cout << " Solo se puede realizar la accion "
-                 << actual_.ActionStr( static_cast< Environment::ActionType > (opciones[0])  ) << endl;
-            accion = static_cast< Environment::ActionType > (opciones[0]);
-
-         }
-         else { // Hay que elegir entre varias posibles acciones
-            int aleatorio = rand()%n_opciones;
-            cout << " -> " << actual_.ActionStr( static_cast< Environment::ActionType > (opciones[aleatorio])  ) << endl;
-            accion = static_cast< Environment::ActionType > (opciones[aleatorio]);
-         }
-*/
-    //--------------------- COMENTAR Hasta aqui
-
-
-    //--------------------- AQUI EMPIEZA LA PARTE A REALIZAR POR EL ALUMNO ------------------------------------------------
-
-
-    // Opcion: Poda AlfaBeta
-    // NOTA: La parametrizacion es solo orientativa
-    valor = AlphaBeta_Pruning(actual_, jugador_, PROFUNDIDAD_ALFABETA, accion, alpha, beta, true);
-    cout << "Valor MiniMax: " << valor << "  Accion: " << actual_.ActionStr(accion) << endl;
+    int maximizingPlayer = (actual_.Last_Action(1) == -1 && actual_.Last_Action(2) == -1) ? 1: 0; // si es el primer turno comienza con un unico turno
+    valor = AlphaBeta_Pruning(actual_, jugador_, PROFUNDIDAD_ALFABETA, accion, alpha, beta, maximizingPlayer);
+    cout << "Valor AlphaBeta: " << valor << "  Accion: " << actual_.ActionStr(accion) << endl;
 
     return accion;
 }
 
-double Player::AlphaBeta_Pruning(const Environment& env, int player, int depth, Environment::ActionType& action, double alpha, double beta, bool maximizingPlayer)
+bool terminalState(const Environment& env, int depth)
 {
-  double value;
-  if(depth == 0 || env.JuegoTerminado())
+  bool options[8];
+  int n_options = env.possible_actions(options);
+  //cout << "depth: " << depth << ", jterminado: " << env.JuegoTerminado() << ", nopciones: " << n_options << endl;
+  return (depth == 0 || env.JuegoTerminado() || n_options==0) ? true : false;
+}
+
+double Player::maxValue(const Environment& env, int player, int depth, double alpha, double beta, Environment::ActionType& action, int maximizingPlayer, int next_move)
+{
+  if(terminalState(env, depth))
   {
-    return ValoracionTest(env, player);
+    // cout <<"termina" <<endl;
+    //action = static_cast<Environment::ActionType> (next_move);
+    return Valoracion(env, player);
   }
 
-  if(maximizingPlayer)
+  bool options[8];
+  double value = menosinf, max_value;
+  int n_options = env.possible_actions(options),
+      rival = (player==1) ? 2 : 1;
+  next_move=-1;
+  ++maximizingPlayer;
+  //cout << "maximizingPlayer " << maximizingPlayer << " en max, opciones posibles: "<<n_options <<endl;
+  for(int i=0; i<n_options; ++i)
   {
-    value = menosinf;
-    bool options[8];
-    int next_move=-1;
-    int n_options = env.possible_actions(options);
-    for(int i=0; i<n_options; ++i)
+    Environment child = env.GenerateNextMove(next_move);
+    //action = static_cast<Environment::ActionType> (next_move);
+    if(player == child.JugadorActivo()) // mirar que el primer turno sea solo 1 ficha y en el resto 2
+      max_value = maxValue(child, player, depth-1, alpha, beta, action, maximizingPlayer, next_move);
+    else
+      max_value = minValue(child, rival, depth-1, alpha, beta, action, maximizingPlayer, next_move);
+
+    if(max_value > value)
     {
-      Environment child = env.GenerateNextMove(next_move);
-      cout << "nex move: " << next_move << "  Accion: " << child.ActionStr(action) << endl;
+      value = max_value;
       action = static_cast<Environment::ActionType> (next_move);
-      value = AlphaBeta_Pruning(child, player, depth-1, action, alpha, beta, false);
-      alpha = max(alpha, value);
-      if(alpha >= beta)
-        break;  // beta cutoff
     }
-  }else
-  {
-    value = masinf;
-    bool options[8];
-    int next_move=-1;
-    int n_options = env.possible_actions(options);
-    for(int i=0; i<n_options; ++i)
-    {
-      Environment child = env.GenerateNextMove(next_move);
-      action = static_cast<Environment::ActionType> (next_move);
-      cout << "nex move: " << next_move << "  Accion: " << child.ActionStr(action) << endl;
-      value = AlphaBeta_Pruning(child, player, depth-1, action, alpha, beta, true);
-      beta = min(beta, value);
-      if(beta <= alpha)
-        break;  // alpha cutoff
-    }
+
+    if(beta <= value) return value;  // beta cutoff
+
+    alpha = max(alpha, value);
   }
+  return value;
+}
+
+double Player::minValue(const Environment& env, int player, int depth, double alpha, double beta, Environment::ActionType& action, int maximizingPlayer, int next_move)
+{
+  if(terminalState(env, depth))
+  {
+    return Valoracion(env, player);
+  }
+
+  bool options[8];
+  double value = masinf, min_value;
+  int n_options = env.possible_actions(options),
+      rival = (player==1) ? 2 : 1;
+      next_move=-1,
+      min_value;
+  ++maximizingPlayer;
+  for(int i=0; i<n_options; ++i)
+  {
+    Environment child = env.GenerateNextMove(next_move);
+    //action = static_cast<Environment::ActionType> (next_move);
+    if(player == child.JugadorActivo())
+      min_value = minValue(child, player, depth-1, alpha, beta, action, maximizingPlayer, next_move);
+    else
+      min_value = maxValue(child, rival, depth-1, alpha, beta, action, 0, next_move);
+
+    if(min_value < value)
+    {
+      value = min_value;
+      action = static_cast<Environment::ActionType> (next_move);
+    }
+
+    if(value <= alpha)
+    {
+      return value;  // alpha cutoff
+    }
+    beta = min(beta, value);
+  }
+  return value;
+}
+
+// metodo a tener en cuenta para comprobar si el tablero se llena(de cara a estado final) -> Get_Ocupacion_Columna
+// The Alpha-Beta algorithm, from Russell and Norvig's AI textbook (Russell and Norvig 2016).
+// https://www.researchgate.net/figure/The-Alpha-Beta-pseudo-code-from-Russell-and-Norvigs-AI-textbook-Russell-and-Norvig_fig1_329715244
+double Player::AlphaBeta_Pruning(const Environment& env, int player, int depth, Environment::ActionType& action, double alpha, double beta, int maximizingPlayer)
+{
+  double value;
+  bool options[8];
+  int rival = (player==1) ? 2 : 1;
+  int next_move = -1;
+
+  value = maxValue(env, player, depth-1, menosinf, masinf, action, maximizingPlayer, next_move);
   return value;
 }
